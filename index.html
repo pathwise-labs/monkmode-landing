@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Monk Mode — Build Habits. Unlock Your Apps.</title>
+  <meta name="description" content="Monk Mode helps you build daily habits and unlock your apps as a reward. Block distractions, log your progress, and grow with your crew." />
+  <meta property="og:title" content="Monk Mode — Build Habits. Unlock Your Apps." />
+  <meta property="og:description" content="Block distracting apps until you've earned them back. Build streaks, share with your crew, and stay accountable." />
+  <meta property="og:image" content="/og-image.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --brand:      #5CC830;
+      --brand-dark: #2A7810;
+      --brand-pale: #E6F7D9;
+      --bg:         #0D1F07;
+      --bg2:        #122A09;
+      --bg3:        #1A3A10;
+      --text:       #F0FAE8;
+      --muted:      #7AAF60;
+      --border:     rgba(92,200,48,0.18);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* ─────────── NAV ─────────── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 40px;
+      background: rgba(13,31,7,0.88);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .nav-logo-icon {
+      width: 34px; height: 34px;
+      background: var(--brand);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px;
+      box-shadow: 0 2px 0 var(--brand-dark);
+      flex-shrink: 0;
+    }
+
+    .nav-logo-text {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 19px; font-weight: 700;
+      color: var(--text);
+    }
+
+    .nav-links {
+      display: flex; align-items: center; gap: 28px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--muted);
+      font-size: 14px; font-weight: 600;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+
+    .nav-cta {
+      background: var(--brand) !important;
+      color: #fff !important;
+      padding: 8px 20px;
+      border-radius: 9999px;
+      font-weight: 800 !important;
+      font-size: 13px !important;
+      box-shadow: 0 3px 0 var(--brand-dark);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .nav-cta:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 5px 0 var(--brand-dark) !important;
+    }
+
+    /* Mobile hamburger */
+    .nav-burger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      cursor: pointer;
+      padding: 4px;
+      background: none;
+      border: none;
+    }
+    .nav-burger span {
+      display: block;
+      width: 22px; height: 2px;
+      background: var(--text);
+      border-radius: 2px;
+      transition: transform 0.25s, opacity 0.25s;
+    }
+    .nav-burger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .nav-burger.open span:nth-child(2) { opacity: 0; }
+    .nav-burger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    .nav-mobile {
+      display: none;
+      position: fixed;
+      top: 62px; left: 0; right: 0;
+      background: rgba(13,31,7,0.97);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 24px 28px;
+      flex-direction: column;
+      gap: 4px;
+      z-index: 199;
+    }
+    .nav-mobile.open { display: flex; }
+    .nav-mobile a {
+      padding: 12px 0;
+      font-size: 16px; font-weight: 700;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      transition: color 0.2s;
+    }
+    .nav-mobile a:last-child { border-bottom: none; }
+    .nav-mobile a:hover { color: var(--text); }
+    .nav-mobile .mob-cta {
+      margin-top: 16px;
+      background: var(--brand);
+      color: #fff !important;
+      text-align: center;
+      padding: 14px;
+      border-radius: 12px;
+      font-weight: 800;
+      box-shadow: 0 3px 0 var(--brand-dark);
+      border-bottom: none !important;
+    }
+
+    /* ─────────── BUTTONS ─────────── */
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--brand);
+      color: #fff;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800; font-size: 16px;
+      padding: 14px 28px;
+      border-radius: 14px;
+      border: none; cursor: pointer;
+      box-shadow: 0 4px 0 var(--brand-dark);
+      transition: transform 0.15s, box-shadow 0.15s;
+      text-decoration: none;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 0 var(--brand-dark); }
+    .btn-primary:active { transform: translateY(1px); box-shadow: 0 2px 0 var(--brand-dark); }
+
+    .btn-secondary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: transparent;
+      color: var(--text);
+      font-family: 'Nunito', sans-serif;
+      font-weight: 700; font-size: 16px;
+      padding: 14px 28px;
+      border-radius: 14px;
+      border: 1.5px solid var(--border);
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+      text-decoration: none;
+    }
+    .btn-secondary:hover { border-color: var(--brand); color: var(--brand); }
+
+    /* ─────────── HERO ─────────── */
+    .hero {
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 110px 40px 80px;
+      position: relative; overflow: hidden;
+    }
+
+    .hero-glow {
+      position: absolute; top: -180px; left: 50%;
+      transform: translateX(-50%);
+      width: 900px; height: 900px;
+      background: radial-gradient(circle, rgba(92,200,48,0.13) 0%, transparent 68%);
+      pointer-events: none;
+    }
+
+    .hero-inner {
+      max-width: 1100px; width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 56px;
+      align-items: center;
+      position: relative;
+    }
+
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(92,200,48,0.1);
+      border: 1.5px solid rgba(92,200,48,0.35);
+      border-radius: 9999px;
+      padding: 5px 14px;
+      font-size: 11px; font-weight: 800;
+      color: var(--brand);
+      letter-spacing: 0.07em; text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-family: 'Fredoka', sans-serif;
+      font-size: clamp(42px, 5.5vw, 68px);
+      font-weight: 700; line-height: 1.06;
+      color: var(--text);
+      margin-bottom: 18px;
+    }
+    .hero h1 span { color: var(--brand); }
+
+    .hero-desc {
+      font-size: 17px; color: var(--muted);
+      line-height: 1.75; margin-bottom: 36px;
+      max-width: 460px;
+    }
+
+    .hero-buttons {
+      display: flex; gap: 12px; flex-wrap: wrap;
+    }
+
+    /* Phone mockup */
+    .phone-wrap {
+      display: flex; justify-content: center; align-items: center;
+      position: relative;
+    }
+
+    .phone-glow {
+      position: absolute; bottom: -80px; left: 50%;
+      transform: translateX(-50%);
+      width: 320px; height: 320px;
+      background: radial-gradient(circle, rgba(92,200,48,0.18) 0%, transparent 68%);
+      pointer-events: none;
+    }
+
+    .phone {
+      width: 278px; height: 572px;
+      background: var(--bg2);
+      border-radius: 42px;
+      border: 2.5px solid rgba(92,200,48,0.32);
+      box-shadow:
+        0 0 0 8px rgba(92,200,48,0.05),
+        0 48px 80px rgba(0,0,0,0.65),
+        inset 0 0 0 1px rgba(255,255,255,0.04);
+      position: relative; overflow: hidden;
+    }
+
+    .phone::before {
+      content: '';
+      position: absolute; top: 12px; left: 50%;
+      transform: translateX(-50%);
+      width: 88px; height: 26px;
+      background: var(--bg); border-radius: 9999px;
+      z-index: 10;
+    }
+
+    .phone-screen {
+      position: absolute; inset: 0;
+      padding: 52px 14px 56px;
+      display: flex; flex-direction: column; gap: 9px;
+    }
+
+    .ps-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 2px;
+    }
+    .ps-streak {
+      background: var(--brand); color: #fff;
+      font-size: 10px; font-weight: 800; font-family: 'Fredoka', sans-serif;
+      padding: 3px 10px; border-radius: 9999px;
+    }
+    .ps-title {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 11px; font-weight: 700; color: var(--muted);
+    }
+    .ps-greeting {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 17px; font-weight: 700; color: var(--text);
+      line-height: 1.25; margin-bottom: 2px;
+    }
+
+    .ps-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+    .ps-habit-row {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 7px;
+    }
+    .ps-habit-icon {
+      width: 28px; height: 28px;
+      background: rgba(92,200,48,0.15); border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; flex-shrink: 0;
+    }
+    .ps-habit-name { font-size: 11px; font-weight: 800; color: var(--text); }
+    .ps-habit-sub  { font-size: 9px;  color: var(--muted); margin-top: 1px; }
+    .ps-bar { height: 4px; background: rgba(255,255,255,0.07); border-radius: 9999px; overflow: hidden; }
+    .ps-bar-fill { height: 100%; background: var(--brand); border-radius: 9999px; }
+
+    .ps-unlock-badge {
+      background: rgba(92,200,48,0.12);
+      border: 1px solid rgba(92,200,48,0.3);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 10px; font-weight: 700; color: var(--brand);
+      text-align: center;
+    }
+
+    .ps-tabs {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: rgba(13,31,7,0.95);
+      border-top: 1px solid var(--border);
+      display: flex; justify-content: space-around;
+      padding: 8px 0 12px;
+    }
+    .ps-tab {
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      font-size: 8px; font-weight: 700; color: var(--muted);
+    }
+    .ps-tab.active { color: var(--brand); }
+    .ps-tab-ico {
+      width: 22px; height: 22px;
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+      background: rgba(255,255,255,0.04);
+    }
+    .ps-tab.active .ps-tab-ico { background: rgba(92,200,48,0.2); }
+
+    /* ─────────── STATS BAR ─────────── */
+    .stats-bar {
+      display: flex; justify-content: center;
+      gap: 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .stat {
+      flex: 1; text-align: center;
+      padding: 36px 20px;
+      border-right: 1px solid var(--border);
+    }
+    .stat:last-child { border-right: none; }
+
+    .stat-number {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 38px; font-weight: 700;
+      color: var(--brand); display: block;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+    .stat-label {
+      font-size: 13px; color: var(--muted); font-weight: 600;
+    }
+
+    /* ─────────── SECTIONS ─────────── */
+    section { padding: 96px 40px; }
+
+    .section-inner { max-width: 1100px; margin: 0 auto; }
+
+    .section-label {
+      font-size: 11px; font-weight: 800; color: var(--brand);
+      letter-spacing: 0.12em; text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .section-title {
+      font-family: 'Fredoka', sans-serif;
+      font-size: clamp(30px, 4vw, 46px); font-weight: 700;
+      color: var(--text); line-height: 1.12;
+      margin-bottom: 14px;
+    }
+    .section-sub {
+      font-size: 17px; color: var(--muted);
+      max-width: 540px; line-height: 1.7;
+      margin-bottom: 52px;
+    }
+
+    /* ─────────── HOW IT WORKS ─────────── */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .step {
+      background: var(--bg2);
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      padding: 28px 24px;
+      transition: border-color 0.2s;
+    }
+    .step:hover { border-color: rgba(92,200,48,0.45); }
+
+    .step-number {
+      width: 36px; height: 36px;
+      background: var(--brand); border-radius: 9999px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Fredoka', sans-serif; font-size: 18px; font-weight: 700;
+      color: #fff; margin-bottom: 16px;
+      box-shadow: 0 3px 0 var(--brand-dark);
+    }
+
+    .step h3 {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 21px; font-weight: 700; color: var(--text);
+      margin-bottom: 8px;
+    }
+    .step p { font-size: 14px; color: var(--muted); line-height: 1.65; }
+
+    /* ─────────── FEATURES ─────────── */
+    .features-section {
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+
+    .feature-card {
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 18px;
+      padding: 26px 22px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .feature-card:hover {
+      border-color: rgba(92,200,48,0.45);
+      transform: translateY(-2px);
+    }
+
+    .feature-icon {
+      width: 46px; height: 46px;
+      background: rgba(92,200,48,0.1);
+      border: 1.5px solid rgba(92,200,48,0.25);
+      border-radius: 13px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; margin-bottom: 14px;
+    }
+    .feature-card h3 {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 19px; font-weight: 700; color: var(--text); margin-bottom: 7px;
+    }
+    .feature-card p { font-size: 14px; color: var(--muted); line-height: 1.65; }
+
+    /* ─────────── CREW FEED ─────────── */
+    .crew-scroll {
+      display: flex; gap: 14px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      scrollbar-width: none;
+    }
+    .crew-scroll::-webkit-scrollbar { display: none; }
+
+    .crew-card {
+      background: var(--bg2);
+      border: 1.5px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      min-width: 230px;
+      flex-shrink: 0;
+    }
+
+    .crew-card-top {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+    }
+    .crew-avatar {
+      width: 36px; height: 36px; border-radius: 9999px;
+      background: rgba(92,200,48,0.15);
+      border: 2px solid var(--brand);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .crew-name  { font-weight: 800; font-size: 13px; color: var(--text); }
+    .crew-streak{ font-size: 11px; color: var(--brand); font-weight: 700; }
+
+    .crew-habit {
+      background: rgba(92,200,48,0.06);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 12px; color: var(--muted); line-height: 1.5;
+    }
+    .crew-habit strong { color: var(--text); font-weight: 800; }
+
+    .crew-actions {
+      display: flex; gap: 8px; margin-top: 10px;
+    }
+    .crew-btn {
+      flex: 1; padding: 6px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 11px; font-weight: 700; color: var(--muted);
+      cursor: pointer; text-align: center;
+    }
+
+    /* ─────────── WAITLIST / CTA ─────────── */
+    .cta-section {
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+    }
+
+    .cta-box {
+      max-width: 680px; margin: 0 auto;
+      text-align: center;
+    }
+
+    .cta-emoji { font-size: 54px; margin-bottom: 18px; display: block; }
+
+    .cta-box h2 {
+      font-family: 'Fredoka', sans-serif;
+      font-size: clamp(32px, 4vw, 46px); font-weight: 700;
+      color: var(--text); margin-bottom: 14px;
+    }
+    .cta-box p {
+      font-size: 17px; color: var(--muted); line-height: 1.65; margin-bottom: 36px;
+    }
+
+    .waitlist-form {
+      display: flex; gap: 10px; max-width: 440px; margin: 0 auto 20px;
+    }
+    .waitlist-input {
+      flex: 1;
+      padding: 14px 18px;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      font-family: 'Nunito', sans-serif;
+      font-size: 15px; font-weight: 600;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .waitlist-input::placeholder { color: var(--muted); }
+    .waitlist-input:focus { border-color: var(--brand); }
+
+    .waitlist-btn {
+      background: var(--brand);
+      color: #fff;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800; font-size: 15px;
+      padding: 14px 22px;
+      border-radius: 12px;
+      border: none; cursor: pointer;
+      box-shadow: 0 3px 0 var(--brand-dark);
+      transition: transform 0.15s, box-shadow 0.15s;
+      white-space: nowrap;
+    }
+    .waitlist-btn:hover { transform: translateY(-1px); box-shadow: 0 5px 0 var(--brand-dark); }
+    .waitlist-btn:active { transform: translateY(1px); box-shadow: 0 1px 0 var(--brand-dark); }
+
+    .waitlist-note {
+      font-size: 12px; color: var(--muted); font-weight: 600;
+    }
+
+    .waitlist-success {
+      display: none;
+      background: rgba(92,200,48,0.1);
+      border: 1.5px solid rgba(92,200,48,0.35);
+      border-radius: 12px;
+      padding: 14px 20px;
+      font-size: 15px; font-weight: 700; color: var(--brand);
+      max-width: 440px; margin: 0 auto;
+    }
+
+    .store-badges {
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      margin-top: 28px; flex-wrap: wrap;
+    }
+    .store-badge {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 18px;
+      font-size: 13px; font-weight: 700; color: var(--text);
+      transition: border-color 0.2s;
+      text-decoration: none;
+    }
+    .store-badge:hover { border-color: var(--brand); }
+    .store-badge-icon { font-size: 22px; }
+    .store-badge-sub { font-size: 10px; color: var(--muted); font-weight: 600; }
+
+    /* ─────────── FAQ ─────────── */
+    .faq-list { max-width: 680px; }
+
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 20px 0;
+    }
+    .faq-item:first-child { border-top: 1px solid var(--border); }
+
+    .faq-q {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      cursor: pointer;
+      font-size: 16px; font-weight: 800; color: var(--text);
+      list-style: none;
+      user-select: none;
+    }
+    .faq-q::marker, .faq-q::-webkit-details-marker { display: none; }
+
+    details[open] .faq-q { color: var(--brand); }
+
+    .faq-icon {
+      width: 22px; height: 22px; flex-shrink: 0;
+      background: rgba(92,200,48,0.1);
+      border: 1px solid var(--border);
+      border-radius: 9999px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; color: var(--muted);
+      transition: transform 0.2s;
+    }
+    details[open] .faq-icon { transform: rotate(45deg); color: var(--brand); }
+
+    .faq-a {
+      padding-top: 12px;
+      font-size: 14px; color: var(--muted); line-height: 1.7;
+    }
+
+    /* ─────────── FOOTER ─────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 40px;
+    }
+
+    .footer-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; align-items: flex-start; justify-content: space-between;
+      flex-wrap: wrap; gap: 32px;
+    }
+
+    .footer-brand { max-width: 260px; }
+
+    .footer-logo {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+    }
+    .footer-logo-icon {
+      width: 30px; height: 30px;
+      background: var(--brand); border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px;
+    }
+    .footer-logo-text {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 17px; font-weight: 700; color: var(--text);
+    }
+    .footer-tagline {
+      font-size: 13px; color: var(--muted); line-height: 1.6;
+    }
+    .footer-copy {
+      font-size: 11px; color: var(--muted); opacity: 0.6; margin-top: 10px;
+    }
+
+    .footer-col h4 {
+      font-size: 11px; font-weight: 800; color: var(--brand);
+      letter-spacing: 0.1em; text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .footer-col a {
+      font-size: 14px; font-weight: 600; color: var(--muted);
+      transition: color 0.2s;
+    }
+    .footer-col a:hover { color: var(--text); }
+
+    /* ─────────── RESPONSIVE ─────────── */
+    @media (max-width: 900px) {
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 768px) {
+      nav { padding: 14px 20px; }
+      .nav-links { display: none; }
+      .nav-burger { display: flex; }
+
+      .hero { padding: 90px 20px 60px; }
+      .hero-inner { grid-template-columns: 1fr; gap: 40px; text-align: center; }
+      .hero-desc { margin: 0 auto 32px; }
+      .hero-buttons { justify-content: center; }
+      .phone-wrap { order: -1; }
+      .phone { width: 240px; height: 490px; }
+
+      section { padding: 60px 20px; }
+
+      .stats-bar { flex-wrap: wrap; }
+      .stat { min-width: 50%; border-bottom: 1px solid var(--border); }
+      .stat:last-child { border-right: none; }
+
+      .steps { grid-template-columns: 1fr; }
+      .features-grid { grid-template-columns: 1fr; }
+
+      .waitlist-form { flex-direction: column; }
+
+      footer { padding: 32px 20px; }
+      .footer-inner { flex-direction: column; gap: 28px; }
+    }
+
+    @media (max-width: 480px) {
+      .hero h1 { font-size: 36px; }
+      .section-title { font-size: 28px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a href="/" class="nav-logo">
+      <div class="nav-logo-icon">🧘</div>
+      <span class="nav-logo-text">Monk Mode</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#how-it-works">How it works</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#faq">FAQ</a></li>
+      <li><a href="privacy.html">Privacy</a></li>
+      <li><a href="#waitlist" class="nav-cta">Get Early Access</a></li>
+    </ul>
+    <button class="nav-burger" id="navBurger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <div class="nav-mobile" id="navMobile">
+    <a href="#how-it-works" onclick="closeMobileNav()">How it works</a>
+    <a href="#features" onclick="closeMobileNav()">Features</a>
+    <a href="#crew" onclick="closeMobileNav()">Your Crew</a>
+    <a href="#faq" onclick="closeMobileNav()">FAQ</a>
+    <a href="privacy.html">Privacy</a>
+    <a href="#waitlist" class="mob-cta" onclick="closeMobileNav()">Get Early Access →</a>
+  </div>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-glow"></div>
+    <div class="hero-inner">
+      <div>
+        <div class="hero-badge">🔥 Coming soon to the App Store</div>
+        <h1>Build habits.<br /><span>Unlock your apps.</span></h1>
+        <p class="hero-desc">Monk Mode blocks your distracting apps until you've earned them back by completing your daily habits. Build streaks, stay accountable, and grow with your crew.</p>
+        <div class="hero-buttons">
+          <a href="#waitlist" class="btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.26h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.96a16 16 0 0 0 6 6l1.06-.94a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            Get Early Access
+          </a>
+          <a href="#how-it-works" class="btn-secondary">See how it works</a>
+        </div>
+      </div>
+      <div class="phone-wrap">
+        <div class="phone-glow"></div>
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="ps-header">
+              <div class="ps-streak">🔥 7 STREAK</div>
+              <div class="ps-title">monk.mode</div>
+            </div>
+            <div class="ps-greeting">Good morning,<br/>Alan! 👋</div>
+            <div class="ps-card">
+              <div class="ps-habit-row">
+                <div class="ps-habit-icon">🏃</div>
+                <div>
+                  <div class="ps-habit-name">Morning Run</div>
+                  <div class="ps-habit-sub">30 min · 6am</div>
+                </div>
+              </div>
+              <div class="ps-bar"><div class="ps-bar-fill" style="width:100%"></div></div>
+            </div>
+            <div class="ps-card">
+              <div class="ps-habit-row">
+                <div class="ps-habit-icon">📖</div>
+                <div>
+                  <div class="ps-habit-name">Read 20 pages</div>
+                  <div class="ps-habit-sub">8am daily</div>
+                </div>
+              </div>
+              <div class="ps-bar"><div class="ps-bar-fill" style="width:55%"></div></div>
+            </div>
+            <div class="ps-card">
+              <div class="ps-habit-row">
+                <div class="ps-habit-icon">🧘</div>
+                <div>
+                  <div class="ps-habit-name">Meditate</div>
+                  <div class="ps-habit-sub">10 min · 7am</div>
+                </div>
+              </div>
+              <div class="ps-bar"><div class="ps-bar-fill" style="width:100%"></div></div>
+            </div>
+            <div class="ps-unlock-badge">🔓 2 / 3 habits done · apps 67% unlocked</div>
+          </div>
+          <div class="ps-tabs">
+            <div class="ps-tab active"><div class="ps-tab-ico">🏠</div>Home</div>
+            <div class="ps-tab"><div class="ps-tab-ico">🌱</div>Habits</div>
+            <div class="ps-tab"><div class="ps-tab-ico">🛡️</div>Block</div>
+            <div class="ps-tab"><div class="ps-tab-ico">⏱️</div>Monk</div>
+            <div class="ps-tab"><div class="ps-tab-ico">👥</div>Crew</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <div class="stats-bar">
+    <div class="stat">
+      <span class="stat-number">30+</span>
+      <span class="stat-label">Habit categories</span>
+    </div>
+    <div class="stat">
+      <span class="stat-number">100</span>
+      <span class="stat-label">Day max streak</span>
+    </div>
+    <div class="stat">
+      <span class="stat-number">0</span>
+      <span class="stat-label">Data sold ever</span>
+    </div>
+    <div class="stat">
+      <span class="stat-number">iOS</span>
+      <span class="stat-label">iPhone & iPad</span>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <section id="how-it-works">
+    <div class="section-inner">
+      <div class="section-label">How it works</div>
+      <h2 class="section-title">Earn your apps back,<br />every single day.</h2>
+      <p class="section-sub">Monk Mode flips the script — instead of relying on willpower alone, your apps stay locked until you prove you deserve them.</p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <h3>Add your habits</h3>
+          <p>Choose from 30+ categories — gym, reading, meditation, journalling, cold shower, and more. Set your schedule and daily targets.</p>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <h3>Block distracting apps</h3>
+          <p>Select which apps to lock — social media, games, streaming. Monk Mode uses Apple's Screen Time to enforce the block automatically.</p>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <h3>Log habits to unlock</h3>
+          <p>Complete your habits and log them in the app. Hit your daily goal and your blocked apps unlock automatically as your reward.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features" class="features-section">
+    <div class="section-inner">
+      <div class="section-label">Features</div>
+      <h2 class="section-title">Everything you need<br />to build real habits.</h2>
+      <p class="section-sub">Built for people serious about change — not just another to-do list that you ignore by day 3.</p>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">📵</div>
+          <h3>Real App Blocking</h3>
+          <p>Uses Apple's Screen Time API to genuinely block distracting apps. Not a timer, not a reminder — actual blocking until your habits are done.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔥</div>
+          <h3>Streak Tracking</h3>
+          <p>Build consecutive-day streaks and watch them compound. Hit milestones at 7, 14, 30, 60, and 100 days. Miss a day and you start from zero.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⏱️</div>
+          <h3>Focus Timer</h3>
+          <p>Start a Monk session and lock in. A live countdown appears on your Dynamic Island and lock screen so you stay aware without opening the app.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">👥</div>
+          <h3>Crew Feed</h3>
+          <p>Share habit completions with your crew. See who's logging, like and comment on their posts, and hold each other accountable.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🏆</div>
+          <h3>Friends Leaderboard</h3>
+          <p>See where you rank among the people you follow. Friendly competition that turns streaks into sport.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔔</div>
+          <h3>Smart Notifications</h3>
+          <p>Get notified when friends like or comment on your posts, follow you, or hit milestones. An evening reminder fires if you haven't logged yet.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📸</div>
+          <h3>Habit Proof Photos</h3>
+          <p>Take a photo when you log your habit as proof. Share it to your crew feed to inspire others and keep yourself honest.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🏅</div>
+          <h3>Profile Badges</h3>
+          <p>Unlock badges as you hit milestones — 7-Day, 14-Day, 30-Day streaks, and Crew Starter. Show them off on your profile.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔒</div>
+          <h3>Private by Default</h3>
+          <p>Your habit data stays on your device and in your own account. We never sell your data. You choose what to share with your crew.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CREW FEED -->
+  <section id="crew">
+    <div class="section-inner">
+      <div class="section-label">Your Crew</div>
+      <h2 class="section-title">Habits are better<br />with accountability.</h2>
+      <p class="section-sub">Share your progress, cheer each other on, and build the kind of social accountability that actually makes you show up.</p>
+      <div class="crew-scroll">
+        <div class="crew-card">
+          <div class="crew-card-top">
+            <div class="crew-avatar">💪</div>
+            <div>
+              <div class="crew-name">James</div>
+              <div class="crew-streak">🔥 14-day streak</div>
+            </div>
+          </div>
+          <div class="crew-habit"><strong>Just crushed Gym</strong> — Day 14. Not stopping now 💪</div>
+          <div class="crew-actions">
+            <div class="crew-btn">❤️ 4</div>
+            <div class="crew-btn">💬 2</div>
+          </div>
+        </div>
+        <div class="crew-card">
+          <div class="crew-card-top">
+            <div class="crew-avatar">📖</div>
+            <div>
+              <div class="crew-name">Sarah</div>
+              <div class="crew-streak">🔥 7-day streak</div>
+            </div>
+          </div>
+          <div class="crew-habit"><strong>Morning pages done ✓</strong> — Journalling every day this week 🙌</div>
+          <div class="crew-actions">
+            <div class="crew-btn">❤️ 7</div>
+            <div class="crew-btn">💬 1</div>
+          </div>
+        </div>
+        <div class="crew-card">
+          <div class="crew-card-top">
+            <div class="crew-avatar">🧘</div>
+            <div>
+              <div class="crew-name">Mike</div>
+              <div class="crew-streak">🔥 30-day streak</div>
+            </div>
+          </div>
+          <div class="crew-habit"><strong>Meditation ✓</strong> — 30 days straight. This changed everything.</div>
+          <div class="crew-actions">
+            <div class="crew-btn">❤️ 12</div>
+            <div class="crew-btn">💬 5</div>
+          </div>
+        </div>
+        <div class="crew-card">
+          <div class="crew-card-top">
+            <div class="crew-avatar">🏃</div>
+            <div>
+              <div class="crew-name">Emma</div>
+              <div class="crew-streak">🔥 5-day streak</div>
+            </div>
+          </div>
+          <div class="crew-habit"><strong>5km done</strong> — Cold morning but showed up anyway 🌅</div>
+          <div class="crew-actions">
+            <div class="crew-btn">❤️ 3</div>
+            <div class="crew-btn">💬 0</div>
+          </div>
+        </div>
+        <div class="crew-card">
+          <div class="crew-card-top">
+            <div class="crew-avatar">❄️</div>
+            <div>
+              <div class="crew-name">Tom</div>
+              <div class="crew-streak">🔥 21-day streak</div>
+            </div>
+          </div>
+          <div class="crew-habit"><strong>Cold shower ✓</strong> — Week 3. It never gets easier, you just get tougher.</div>
+          <div class="crew-actions">
+            <div class="crew-btn">❤️ 9</div>
+            <div class="crew-btn">💬 3</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq" style="background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+    <div class="section-inner">
+      <div class="section-label">FAQ</div>
+      <h2 class="section-title">Common questions</h2>
+      <div class="faq-list">
+        <details class="faq-item">
+          <summary class="faq-q">
+            Is Monk Mode free?
+            <span class="faq-icon">+</span>
+          </summary>
+          <p class="faq-a">Yes — Monk Mode is free to download and use. Core features including habit tracking, app blocking, streaks, and the crew feed are all free.</p>
+        </details>
+        <details class="faq-item">
+          <summary class="faq-q">
+            How does the app blocking actually work?
+            <span class="faq-icon">+</span>
+          </summary>
+          <p class="faq-a">Monk Mode uses Apple's Screen Time API (Family Controls) to block the apps you choose. This is the same technology built into iOS — it can't be bypassed by simply deleting Monk Mode. The blocking runs directly on your device and we never have access to which apps you block.</p>
+        </details>
+        <details class="faq-item">
+          <summary class="faq-q">
+            What happens if I don't log my habits?
+            <span class="faq-icon">+</span>
+          </summary>
+          <p class="faq-a">Your blocked apps stay locked until you log your habits. You'll get an evening reminder at 8pm if you haven't logged yet. Miss a full day and your streak resets to zero — that's the point.</p>
+        </details>
+        <details class="faq-item">
+          <summary class="faq-q">
+            Can I keep my habits private?
+            <span class="faq-icon">+</span>
+          </summary>
+          <p class="faq-a">Yes. When you log a habit you choose whether to share it to your crew feed or keep it private. Nothing is shared automatically. Your app blocking data never leaves your device.</p>
+        </details>
+        <details class="faq-item">
+          <summary class="faq-q">
+            What is the Focus Timer?
+            <span class="faq-icon">+</span>
+          </summary>
+          <p class="faq-a">The Focus Timer (Monk Timer) lets you set a deep work session of any length. While it's running, your apps stay blocked and a live countdown appears on your Dynamic Island and lock screen so you stay aware without having to open the app.</p>
+        </details>
+        <details class="faq-item">
+          <summary class="faq-q">
+            Is it available on Android?
+            <span class="faq-icon">+</span>
+          </summary>
+          <p class="faq-a">Monk Mode is currently iOS only. The app blocking feature relies on Apple's Screen Time API which isn't available on Android. An Android version may come in the future.</p>
+        </details>
+        <details class="faq-item">
+          <summary class="faq-q">
+            How do I delete my account?
+            <span class="faq-icon">+</span>
+          </summary>
+          <p class="faq-a">You can request full deletion of your account and all associated data by emailing <a href="mailto:privacy@monkmode.app" style="color: var(--brand);">privacy@monkmode.app</a>. We process deletion requests within 30 days.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- WAITLIST / CTA -->
+  <section id="waitlist" class="cta-section">
+    <div class="section-inner">
+      <div class="cta-box">
+        <span class="cta-emoji">🧘</span>
+        <h2>Ready to go monk?</h2>
+        <p>Join the waitlist and be first to know when Monk Mode launches on the App Store. TestFlight beta spots available now.</p>
+
+        <form class="waitlist-form" id="waitlistForm" onsubmit="handleWaitlist(event)">
+          <input
+            class="waitlist-input"
+            type="email"
+            placeholder="your@email.com"
+            required
+            id="waitlistEmail"
+          />
+          <button class="waitlist-btn" type="submit">Notify me</button>
+        </form>
+        <div class="waitlist-success" id="waitlistSuccess">
+          ✅ You're on the list! We'll email you when we launch.
+        </div>
+        <p class="waitlist-note">No spam. Unsubscribe any time.</p>
+
+        <div class="store-badges">
+          <a href="#" class="store-badge">
+            <span class="store-badge-icon">🍎</span>
+            <div>
+              <div class="store-badge-sub">Download on the</div>
+              <div>App Store</div>
+            </div>
+          </a>
+          <a href="#" class="store-badge">
+            <span class="store-badge-icon">✈️</span>
+            <div>
+              <div class="store-badge-sub">Join the beta on</div>
+              <div>TestFlight</div>
+            </div>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="footer-logo">
+          <div class="footer-logo-icon">🧘</div>
+          <div class="footer-logo-text">Monk Mode</div>
+        </div>
+        <p class="footer-tagline">Build habits. Block distractions. Unlock your potential — one logged habit at a time.</p>
+        <p class="footer-copy">© 2025 Pathwise Private Ltd. All rights reserved.</p>
+      </div>
+
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="#how-it-works">How it works</a></li>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#crew">Your Crew</a></li>
+          <li><a href="#waitlist">Get Early Access</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="privacy.html">Privacy Policy</a></li>
+          <li><a href="mailto:privacy@monkmode.app">Contact Us</a></li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Mobile nav toggle
+    const burger = document.getElementById('navBurger');
+    const mobileNav = document.getElementById('navMobile');
+
+    burger.addEventListener('click', () => {
+      burger.classList.toggle('open');
+      mobileNav.classList.toggle('open');
+    });
+
+    function closeMobileNav() {
+      burger.classList.remove('open');
+      mobileNav.classList.remove('open');
+    }
+
+    // Close mobile nav on outside click
+    document.addEventListener('click', (e) => {
+      if (!burger.contains(e.target) && !mobileNav.contains(e.target)) {
+        closeMobileNav();
+      }
+    });
+
+    // Waitlist form — replace the action URL with your own form handler
+    // e.g. Formspree: https://formspree.io/f/YOUR_FORM_ID
+    function handleWaitlist(e) {
+      e.preventDefault();
+      const email = document.getElementById('waitlistEmail').value;
+      // TODO: replace this URL with your Formspree or Mailchimp endpoint
+      const FORM_URL = 'https://formspree.io/f/xbdpvyqy';
+
+      fetch(FORM_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+        .then(() => {
+          document.getElementById('waitlistForm').style.display = 'none';
+          document.getElementById('waitlistSuccess').style.display = 'block';
+        })
+        .catch(() => {
+          // Fallback: still show success (for demo / before form is hooked up)
+          document.getElementById('waitlistForm').style.display = 'none';
+          document.getElementById('waitlistSuccess').style.display = 'block';
+        });
+    }
+
+    // Smooth scroll offset for fixed nav
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', (e) => {
+        const id = a.getAttribute('href').slice(1);
+        const el = document.getElementById(id);
+        if (!el) return;
+        e.preventDefault();
+        const top = el.getBoundingClientRect().top + window.scrollY - 72;
+        window.scrollTo({ top, behavior: 'smooth' });
+      });
+    });
+  </script>
+
+</body>
+</html>
