@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>monk.mode — animated reel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #0a0a0a; overflow: hidden;
+      font-family: 'Nunito', system-ui, sans-serif; }
+    #root { position: absolute; inset: 0; }
+    @keyframes monkPop {
+      0% { transform: scale(0.4); opacity: 0; }
+      60% { transform: scale(1.15); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    @keyframes monkSlideDown {
+      0% { transform: translateX(-50%) translateY(-30px); opacity: 0; }
+      60% { transform: translateX(-50%) translateY(4px); opacity: 1; }
+      100% { transform: translateX(-50%) translateY(0); opacity: 1; }
+    }
+    /* Tweaks panel */
+    .tweaks {
+      position: fixed; right: 16px; bottom: 80px; z-index: 1000;
+      background: rgba(20,20,20,0.94); backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 14px;
+      padding: 14px 14px 12px; min-width: 220px;
+      color: #f6f4ef; font-family: 'Nunito', system-ui, sans-serif;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .tweaks h4 { margin: 0 0 10px; font-size: 11px; letter-spacing: 2px;
+      text-transform: uppercase; color: rgba(255,255,255,0.55); font-weight: 700; }
+    .tweak-row { display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; padding: 6px 0; font-size: 13px; }
+    .tweak-row label { color: #f6f4ef; font-weight: 600; }
+    .tweak-row select, .tweak-row input[type="checkbox"] { cursor: pointer; }
+    .tweak-row select { background: rgba(255,255,255,0.08); color: #fff;
+      border: 1px solid rgba(255,255,255,0.15); border-radius: 6px;
+      padding: 4px 6px; font-size: 12px; font-family: inherit; }
+    .scene-jumps { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+    .scene-jump { padding: 4px 8px; background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12); border-radius: 6px;
+      font-size: 10px; color: #f6f4ef; cursor: pointer; font-weight: 700;
+      letter-spacing: 0.5px; text-transform: uppercase; font-family: inherit; }
+    .scene-jump:hover { background: rgba(123,196,116,0.3); }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="animations.jsx"></script>
+  <script type="text/babel" src="monk-ui.jsx"></script>
+  <script type="text/babel" src="monk-particles.jsx"></script>
+  <script type="text/babel" src="monk-scenes-1.jsx"></script>
+  <script type="text/babel" src="monk-scenes-2.jsx"></script>
+  <script type="text/babel" src="monk-scenes-3.jsx"></script>
+  <script type="text/babel" src="monk-reel.jsx"></script>
+
+  <script type="text/babel">
+    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "speed": "1.5x",
+      "particles": true,
+      "showSceneClock": true,
+      "dark": false
+    }/*EDITMODE-END*/;
+
+    // Initialize dark flag BEFORE any components render so MONK proxy reads right
+    window.__MONK_DARK = !!TWEAK_DEFAULTS.dark;
+
+    function App() {
+      const [tweaks, setTweaks] = React.useState(TWEAK_DEFAULTS);
+      const [tweaksVisible, setTweaksVisible] = React.useState(false);
+      const speedMap = { '0.5x': 0.5, '1x': 1, '1.5x': 1.5, '2x': 2 };
+      const speed = speedMap[tweaks.speed] || 1;
+      // Keep the global flag in sync; `key` on Stage forces subtree remount on flip
+      window.__MONK_DARK = !!tweaks.dark;
+
+      // Edit mode handshake
+      React.useEffect(() => {
+        const onMsg = (e) => {
+          const d = e.data || {};
+          if (d.type === '__activate_edit_mode') setTweaksVisible(true);
+          else if (d.type === '__deactivate_edit_mode') setTweaksVisible(false);
+        };
+        window.addEventListener('message', onMsg);
+        window.parent.postMessage({type: '__edit_mode_available'}, '*');
+        return () => window.removeEventListener('message', onMsg);
+      }, []);
+
+      const update = (key, value) => {
+        const next = { ...tweaks, [key]: value };
+        setTweaks(next);
+        window.parent.postMessage({type: '__edit_mode_set_keys', edits: { [key]: value }}, '*');
+      };
+
+      // Custom Stage that knows about speed
+      const duration = window.TOTAL_DURATION / speed;
+
+      const seekToScene = (key) => {
+        const start = window.TIMELINE[key].start / speed;
+        try { localStorage.setItem('monkreel:t', String(start)); } catch {}
+        window.location.reload();
+      };
+
+      return (
+        <>
+          <Stage
+            key={tweaks.dark ? 'dark' : 'light'}
+            width={1280}
+            height={720}
+            duration={duration}
+            background={tweaks.dark ? '#000000' : '#0a0a0a'}
+            persistKey="monkreel"
+          >
+            <SpeedWrapper speed={speed}>
+              <MonkReel particles={tweaks.particles} />
+            </SpeedWrapper>
+          </Stage>
+          {tweaksVisible && (
+            <div className="tweaks">
+              <h4>Tweaks</h4>
+              <div className="tweak-row">
+                <label htmlFor="speed">Playback speed</label>
+                <select id="speed" value={tweaks.speed}
+                  onChange={(e) => update('speed', e.target.value)}>
+                  <option>0.5x</option><option>1x</option><option>1.5x</option><option>2x</option>
+                </select>
+              </div>
+              <div className="tweak-row">
+                <label htmlFor="dark">Dark mode</label>
+                <input id="dark" type="checkbox" checked={tweaks.dark}
+                  onChange={(e) => update('dark', e.target.checked)} />
+              </div>
+              <div className="tweak-row">
+                <label htmlFor="particles">Ambient leaves</label>
+                <input id="particles" type="checkbox" checked={tweaks.particles}
+                  onChange={(e) => update('particles', e.target.checked)} />
+              </div>
+              <div className="tweak-row">
+                <label htmlFor="clock">Scene clock</label>
+                <input id="clock" type="checkbox" checked={tweaks.showSceneClock}
+                  onChange={(e) => update('showSceneClock', e.target.checked)} />
+              </div>
+              <h4 style={{ marginTop: 14 }}>Jump to scene</h4>
+              <div className="scene-jumps">
+                {Object.keys(window.TIMELINE).map(k => (
+                  <div key={k} className="scene-jump" onClick={() => seekToScene(k)}>{k}</div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      );
+    }
+
+    // Re-maps the timeline so the same scenes play but at `speed`x (compresses time).
+    function SpeedWrapper({ speed, children }) {
+      const ctx = React.useContext(window.TimelineContext);
+      const newCtx = React.useMemo(() => ({
+        ...ctx,
+        time: ctx.time * speed,
+        duration: ctx.duration * speed,
+      }), [ctx.time, ctx.duration, speed]);
+      return (
+        <window.TimelineContext.Provider value={newCtx}>
+          {children}
+        </window.TimelineContext.Provider>
+      );
+    }
+
+    // Wait for all babel scripts to load before mounting
+    function tryMount(attempt = 0) {
+      if (window.MonkReel && window.Stage && window.SceneHome && window.SceneBlock && window.SceneDarkMode) {
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+      } else if (attempt < 50) {
+        setTimeout(() => tryMount(attempt + 1), 100);
+      } else {
+        document.getElementById('root').innerHTML = '<div style="color:#fff;padding:20px;font-family:monospace">Failed to load components</div>';
+      }
+    }
+    tryMount();
+  </script>
+</body>
+</html>

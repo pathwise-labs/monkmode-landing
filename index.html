@@ -449,6 +449,18 @@ footer { background:rgba(43,99,36,0.06); border-top:1px solid rgba(43,99,36,0.12
   </div>
 </section>
 
+<!-- REEL -->
+<section id="reel" style="padding:64px 24px;text-align:center;background:var(--cream,#F6F4EF);">
+  <div style="max-width:960px;margin:0 auto;">
+    <div style="display:inline-block;padding:4px 14px;border-radius:999px;background:rgba(61,170,69,0.12);color:#3DAA45;font-weight:700;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:16px;">App Preview</div>
+    <h2 style="font-size:clamp(28px,5vw,42px);font-weight:800;color:#1B3A19;margin:0 0 12px;letter-spacing:-0.5px;">See Monk Mode in action</h2>
+    <p style="font-size:17px;color:#5A6957;margin:0 0 32px;max-width:520px;margin-left:auto;margin-right:auto;">42 seconds. Every feature. No fluff.</p>
+    <div id="monk-reel-wrap" style="position:relative;width:100%;max-width:900px;margin:0 auto;aspect-ratio:16/9;border-radius:20px;overflow:hidden;border:3px solid rgba(27,58,25,0.15);box-shadow:0 20px 60px rgba(27,58,25,0.15);background:#0a0a0a;">
+      <div id="monk-reel-root" style="position:absolute;inset:0;"></div>
+    </div>
+  </div>
+</section>
+
 <!-- TICKER -->
 <div class="ticker-outer">
   <div class="ticker"><div class="ticker-track">
@@ -690,6 +702,3049 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 70, behavior:'smooth' });
   });
 });
+</script>
+
+<!-- REEL DEPENDENCIES -->
+<style>
+  @keyframes monkPop {
+    0% { transform: scale(0.4); opacity: 0; }
+    60% { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes monkSlideDown {
+    0% { transform: translateX(-50%) translateY(-30px); opacity: 0; }
+    60% { transform: translateX(-50%) translateY(4px); opacity: 1; }
+    100% { transform: translateX(-50%) translateY(0); opacity: 1; }
+  }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+<script type="text/babel">
+
+// animations.jsx
+// Reusable animation starter: Stage, Timeline, Sprite, easing helpers.
+// Usage (in an HTML file that loads React + Babel):
+//
+//   <Stage width={1280} height={720} duration={10} background="#f6f4ef">
+//     <MyScene />
+//   </Stage>
+//
+// Inside <Stage>, any child can call useTime() to read the current
+// playhead (seconds). Or wrap content in <Sprite start={1} end={4}>...</Sprite>
+// to only render during that window -- children receive a `localTime` and
+// `progress` via the useSprite() hook.
+//
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Easing functions (hand-rolled, Popmotion-style) ─────────────────────────
+// All easings take t ∈ [0,1] and return eased t ∈ [0,1] (may overshoot for back/elastic).
+const Easing = {
+  linear: (t) => t,
+
+  // Quad
+  easeInQuad:    (t) => t * t,
+  easeOutQuad:   (t) => t * (2 - t),
+  easeInOutQuad: (t) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t),
+
+  // Cubic
+  easeInCubic:    (t) => t * t * t,
+  easeOutCubic:   (t) => (--t) * t * t + 1,
+  easeInOutCubic: (t) => (t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1),
+
+  // Quart
+  easeInQuart:    (t) => t * t * t * t,
+  easeOutQuart:   (t) => 1 - (--t) * t * t * t,
+  easeInOutQuart: (t) => (t < 0.5 ? 8 * t * t * t * t : 1 - 8 * (--t) * t * t * t),
+
+  // Expo
+  easeInExpo:  (t) => (t === 0 ? 0 : Math.pow(2, 10 * (t - 1))),
+  easeOutExpo: (t) => (t === 1 ? 1 : 1 - Math.pow(2, -10 * t)),
+  easeInOutExpo: (t) => {
+    if (t === 0) return 0;
+    if (t === 1) return 1;
+    if (t < 0.5) return 0.5 * Math.pow(2, 20 * t - 10);
+    return 1 - 0.5 * Math.pow(2, -20 * t + 10);
+  },
+
+  // Sine
+  easeInSine:    (t) => 1 - Math.cos((t * Math.PI) / 2),
+  easeOutSine:   (t) => Math.sin((t * Math.PI) / 2),
+  easeInOutSine: (t) => -(Math.cos(Math.PI * t) - 1) / 2,
+
+  // Back (overshoot)
+  easeOutBack: (t) => {
+    const c1 = 1.70158, c3 = c1 + 1;
+    return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+  },
+  easeInBack: (t) => {
+    const c1 = 1.70158, c3 = c1 + 1;
+    return c3 * t * t * t - c1 * t * t;
+  },
+  easeInOutBack: (t) => {
+    const c1 = 1.70158, c2 = c1 * 1.525;
+    return t < 0.5
+      ? (Math.pow(2 * t, 2) * ((c2 + 1) * 2 * t - c2)) / 2
+      : (Math.pow(2 * t - 2, 2) * ((c2 + 1) * (t * 2 - 2) + c2) + 2) / 2;
+  },
+
+  // Elastic
+  easeOutElastic: (t) => {
+    const c4 = (2 * Math.PI) / 3;
+    if (t === 0) return 0;
+    if (t === 1) return 1;
+    return Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c4) + 1;
+  },
+};
+
+// ── Core interpolation helpers ──────────────────────────────────────────────
+
+// Clamp a value to [min, max]
+const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+// interpolate([0, 0.5, 1], [0, 100, 50], ease?) -> fn(t)
+// Popmotion-style: linearly maps t across input keyframes to output values,
+// with optional easing per segment (single fn or array of fns).
+function interpolate(input, output, ease = Easing.linear) {
+  return (t) => {
+    if (t <= input[0]) return output[0];
+    if (t >= input[input.length - 1]) return output[output.length - 1];
+    for (let i = 0; i < input.length - 1; i++) {
+      if (t >= input[i] && t <= input[i + 1]) {
+        const span = input[i + 1] - input[i];
+        const local = span === 0 ? 0 : (t - input[i]) / span;
+        const easeFn = Array.isArray(ease) ? (ease[i] || Easing.linear) : ease;
+        const eased = easeFn(local);
+        return output[i] + (output[i + 1] - output[i]) * eased;
+      }
+    }
+    return output[output.length - 1];
+  };
+}
+
+// animate({from, to, start, end, ease})(t) — simpler single-segment tween.
+// Returns `from` before `start`, `to` after `end`.
+function animate({ from = 0, to = 1, start = 0, end = 1, ease = Easing.easeInOutCubic }) {
+  return (t) => {
+    if (t <= start) return from;
+    if (t >= end) return to;
+    const local = (t - start) / (end - start);
+    return from + (to - from) * ease(local);
+  };
+}
+
+// ── Timeline context ────────────────────────────────────────────────────────
+
+const TimelineContext = React.createContext({ time: 0, duration: 10, playing: false });
+
+const useTime = () => React.useContext(TimelineContext).time;
+const useTimeline = () => React.useContext(TimelineContext);
+
+// ── Sprite ──────────────────────────────────────────────────────────────────
+// Renders children only when the playhead is inside [start, end]. Provides
+// a sub-context with `localTime` (seconds since start) and `progress` (0..1).
+//
+//   <Sprite start={2} end={5}>
+//     {({ localTime, progress }) => <Thing x={progress * 100} />}
+//   </Sprite>
+//
+// Or as a plain wrapper — children can call useSprite() themselves.
+
+const SpriteContext = React.createContext({ localTime: 0, progress: 0, duration: 0 });
+const useSprite = () => React.useContext(SpriteContext);
+
+function Sprite({ start = 0, end = Infinity, children, keepMounted = false }) {
+  const { time } = useTimeline();
+  const visible = time >= start && time <= end;
+  if (!visible && !keepMounted) return null;
+
+  const duration = end - start;
+  const localTime = Math.max(0, time - start);
+  const progress = duration > 0 && isFinite(duration)
+    ? clamp(localTime / duration, 0, 1)
+    : 0;
+
+  const value = { localTime, progress, duration, visible };
+
+  return (
+    <SpriteContext.Provider value={value}>
+      {typeof children === 'function' ? children(value) : children}
+    </SpriteContext.Provider>
+  );
+}
+
+// ── Sample sprite components ────────────────────────────────────────────────
+
+// TextSprite: fades/slides text in on entry, holds, then fades out on exit.
+// Props: text, x, y, size, color, font, entryDur, exitDur, align
+function TextSprite({
+  text,
+  x = 0, y = 0,
+  size = 48,
+  color = '#111',
+  font = 'Inter, system-ui, sans-serif',
+  weight = 600,
+  entryDur = 0.45,
+  exitDur = 0.35,
+  entryEase = Easing.easeOutBack,
+  exitEase = Easing.easeInCubic,
+  align = 'left',
+  letterSpacing = '-0.01em',
+}) {
+  const { localTime, duration } = useSprite();
+  const exitStart = Math.max(0, duration - exitDur);
+
+  let opacity = 1;
+  let ty = 0;
+
+  if (localTime < entryDur) {
+    const t = entryEase(clamp(localTime / entryDur, 0, 1));
+    opacity = t;
+    ty = (1 - t) * 16;
+  } else if (localTime > exitStart) {
+    const t = exitEase(clamp((localTime - exitStart) / exitDur, 0, 1));
+    opacity = 1 - t;
+    ty = -t * 8;
+  }
+
+  const translateX = align === 'center' ? '-50%' : align === 'right' ? '-100%' : '0';
+
+  return (
+    <div style={{
+      position: 'absolute',
+      left: x, top: y,
+      transform: `translate(${translateX}, ${ty}px)`,
+      opacity,
+      fontFamily: font,
+      fontSize: size,
+      fontWeight: weight,
+      color,
+      letterSpacing,
+      whiteSpace: 'pre',
+      lineHeight: 1.1,
+      willChange: 'transform, opacity',
+    }}>
+      {text}
+    </div>
+  );
+}
+
+// ImageSprite: scales + fades in; optional Ken Burns drift during hold.
+function ImageSprite({
+  src,
+  x = 0, y = 0,
+  width = 400, height = 300,
+  entryDur = 0.6,
+  exitDur = 0.4,
+  kenBurns = false,
+  kenBurnsScale = 1.08,
+  radius = 12,
+  fit = 'cover',
+  placeholder = null, // {label: string} for striped placeholder
+}) {
+  const { localTime, duration } = useSprite();
+  const exitStart = Math.max(0, duration - exitDur);
+
+  let opacity = 1;
+  let scale = 1;
+
+  if (localTime < entryDur) {
+    const t = Easing.easeOutCubic(clamp(localTime / entryDur, 0, 1));
+    opacity = t;
+    scale = 0.96 + 0.04 * t;
+  } else if (localTime > exitStart) {
+    const t = Easing.easeInCubic(clamp((localTime - exitStart) / exitDur, 0, 1));
+    opacity = 1 - t;
+    scale = (kenBurns ? kenBurnsScale : 1) + 0.02 * t;
+  } else if (kenBurns) {
+    const holdSpan = exitStart - entryDur;
+    const holdT = holdSpan > 0 ? (localTime - entryDur) / holdSpan : 0;
+    scale = 1 + (kenBurnsScale - 1) * holdT;
+  }
+
+  const content = placeholder ? (
+    <div style={{
+      width: '100%', height: '100%',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'repeating-linear-gradient(135deg, #e9e6df 0 10px, #dcd8cf 10px 20px)',
+      color: '#6b6458',
+      fontFamily: 'JetBrains Mono, ui-monospace, monospace',
+      fontSize: 13,
+      letterSpacing: '0.04em',
+      textTransform: 'uppercase',
+    }}>
+      {placeholder.label || 'image'}
+    </div>
+  ) : (
+    <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: fit, display: 'block' }} />
+  );
+
+  return (
+    <div style={{
+      position: 'absolute',
+      left: x, top: y,
+      width, height,
+      opacity,
+      transform: `scale(${scale})`,
+      transformOrigin: 'center',
+      borderRadius: radius,
+      overflow: 'hidden',
+      willChange: 'transform, opacity',
+    }}>
+      {content}
+    </div>
+  );
+}
+
+// RectSprite: simple rectangle that animates position/size/color via props.
+// Useful demo primitive — takes a `render` fn for per-frame customization.
+function RectSprite({
+  x = 0, y = 0,
+  width = 100, height = 100,
+  color = '#111',
+  radius = 8,
+  entryDur = 0.4,
+  exitDur = 0.3,
+  render, // optional: (ctx) => style overrides
+}) {
+  const spriteCtx = useSprite();
+  const { localTime, duration } = spriteCtx;
+  const exitStart = Math.max(0, duration - exitDur);
+
+  let opacity = 1;
+  let scale = 1;
+
+  if (localTime < entryDur) {
+    const t = Easing.easeOutBack(clamp(localTime / entryDur, 0, 1));
+    opacity = clamp(localTime / entryDur, 0, 1);
+    scale = 0.4 + 0.6 * t;
+  } else if (localTime > exitStart) {
+    const t = Easing.easeInQuad(clamp((localTime - exitStart) / exitDur, 0, 1));
+    opacity = 1 - t;
+    scale = 1 - 0.15 * t;
+  }
+
+  const overrides = render ? render(spriteCtx) : {};
+
+  return (
+    <div style={{
+      position: 'absolute',
+      left: x, top: y,
+      width, height,
+      background: color,
+      borderRadius: radius,
+      opacity,
+      transform: `scale(${scale})`,
+      transformOrigin: 'center',
+      willChange: 'transform, opacity',
+      ...overrides,
+    }} />
+  );
+}
+
+
+function Stage({
+  width = 1280,
+  height = 720,
+  duration = 10,
+  background = '#f6f4ef',
+  fps = 60,
+  loop = true,
+  autoplay = true,
+  persistKey = 'animstage',
+  children,
+}) {
+  const [time, setTime] = React.useState(() => {
+    try {
+      const v = parseFloat(localStorage.getItem(persistKey + ':t') || '0');
+      return isFinite(v) ? clamp(v, 0, duration) : 0;
+    } catch { return 0; }
+  });
+  const [playing, setPlaying] = React.useState(autoplay);
+  const [hoverTime, setHoverTime] = React.useState(null);
+  const [scale, setScale] = React.useState(1);
+
+  const stageRef = React.useRef(null);
+  const canvasRef = React.useRef(null);
+  const rafRef = React.useRef(null);
+  const lastTsRef = React.useRef(null);
+
+  // Persist playhead
+  React.useEffect(() => {
+    try { localStorage.setItem(persistKey + ':t', String(time)); } catch {}
+  }, [time, persistKey]);
+
+  // Auto-scale to fit viewport
+  React.useEffect(() => {
+    if (!stageRef.current) return;
+    const el = stageRef.current;
+    const measure = () => {
+      const barH = 44; // playback bar height
+      const s = Math.min(
+        el.clientWidth / width,
+        (el.clientHeight - barH) / height
+      );
+      setScale(Math.max(0.05, s));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    window.addEventListener('resize', measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [width, height]);
+
+  // Animation loop
+  React.useEffect(() => {
+    if (!playing) {
+      lastTsRef.current = null;
+      return;
+    }
+    const step = (ts) => {
+      if (lastTsRef.current == null) lastTsRef.current = ts;
+      const dt = (ts - lastTsRef.current) / 1000;
+      lastTsRef.current = ts;
+      setTime((t) => {
+        let next = t + dt;
+        if (next >= duration) {
+          if (loop) next = next % duration;
+          else { next = duration; setPlaying(false); }
+        }
+        return next;
+      });
+      rafRef.current = requestAnimationFrame(step);
+    };
+    rafRef.current = requestAnimationFrame(step);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      lastTsRef.current = null;
+    };
+  }, [playing, duration, loop]);
+
+  // Keyboard: space = play/pause, ← → = seek
+  React.useEffect(() => {
+    const onKey = (e) => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        setPlaying(p => !p);
+      } else if (e.code === 'ArrowLeft') {
+        setTime(t => clamp(t - (e.shiftKey ? 1 : 0.1), 0, duration));
+      } else if (e.code === 'ArrowRight') {
+        setTime(t => clamp(t + (e.shiftKey ? 1 : 0.1), 0, duration));
+      } else if (e.key === '0' || e.code === 'Home') {
+        setTime(0);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [duration]);
+
+  const displayTime = hoverTime != null ? hoverTime : time;
+
+  const ctxValue = React.useMemo(
+    () => ({ time: displayTime, duration, playing, setTime, setPlaying }),
+    [displayTime, duration, playing]
+  );
+
+  return (
+    <div
+      ref={stageRef}
+      style={{
+        position: 'absolute', inset: 0,
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center',
+        background: '#0a0a0a',
+        fontFamily: 'Inter, system-ui, sans-serif',
+      }}
+    >
+      {/* Canvas area — vertically centered in remaining space */}
+      <div style={{
+        flex: 1,
+        width: '100%',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        overflow: 'hidden',
+        minHeight: 0,
+      }}>
+        <div
+          ref={canvasRef}
+          style={{
+            width, height,
+            background,
+            position: 'relative',
+            transform: `scale(${scale})`,
+            transformOrigin: 'center',
+            flexShrink: 0,
+            boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
+            overflow: 'hidden',
+          }}
+        >
+          <TimelineContext.Provider value={ctxValue}>
+            {children}
+          </TimelineContext.Provider>
+        </div>
+      </div>
+
+      {/* Playback bar — stacked below canvas, never overlapping */}
+      <PlaybackBar
+        time={displayTime}
+        actualTime={time}
+        duration={duration}
+        playing={playing}
+        onPlayPause={() => setPlaying(p => !p)}
+        onReset={() => { setTime(0); }}
+        onSeek={(t) => setTime(t)}
+        onHover={(t) => setHoverTime(t)}
+      />
+    </div>
+  );
+}
+
+// ── Playback bar ────────────────────────────────────────────────────────────
+// Play/pause, return-to-begin, scrub track, time display.
+// Uses fixed-width time fields so layout doesn't thrash.
+
+function PlaybackBar({ time, duration, playing, onPlayPause, onReset, onSeek, onHover }) {
+  const trackRef = React.useRef(null);
+  const [dragging, setDragging] = React.useState(false);
+
+  const timeFromEvent = React.useCallback((e) => {
+    const rect = trackRef.current.getBoundingClientRect();
+    const x = clamp((e.clientX - rect.left) / rect.width, 0, 1);
+    return x * duration;
+  }, [duration]);
+
+  const onTrackMove = (e) => {
+    if (!trackRef.current) return;
+    const t = timeFromEvent(e);
+    if (dragging) {
+      onSeek(t);
+    } else {
+      onHover(t);
+    }
+  };
+
+  const onTrackLeave = () => {
+    if (!dragging) onHover(null);
+  };
+
+  const onTrackDown = (e) => {
+    setDragging(true);
+    const t = timeFromEvent(e);
+    onSeek(t);
+    onHover(null);
+  };
+
+  React.useEffect(() => {
+    if (!dragging) return;
+    const onUp = () => setDragging(false);
+    const onMove = (e) => {
+      if (!trackRef.current) return;
+      const t = timeFromEvent(e);
+      onSeek(t);
+    };
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('mousemove', onMove);
+    return () => {
+      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('mousemove', onMove);
+    };
+  }, [dragging, timeFromEvent, onSeek]);
+
+  const pct = duration > 0 ? (time / duration) * 100 : 0;
+  const fmt = (t) => {
+    const total = Math.max(0, t);
+    const m = Math.floor(total / 60);
+    const s = Math.floor(total % 60);
+    const cs = Math.floor((total * 100) % 100);
+    return `${String(m).padStart(1, '0')}:${String(s).padStart(2, '0')}.${String(cs).padStart(2, '0')}`;
+  };
+
+  const mono = 'JetBrains Mono, ui-monospace, SFMono-Regular, monospace';
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 12,
+      padding: '8px 16px',
+      background: 'rgba(20,20,20,0.92)',
+      borderTop: '1px solid rgba(255,255,255,0.08)',
+      width: '100%',
+      maxWidth: 680,
+      alignSelf: 'center',
+
+      borderRadius: 8,
+      color: '#f6f4ef',
+      fontFamily: 'Inter, system-ui, sans-serif',
+      userSelect: 'none',
+      flexShrink: 0,
+    }}>
+      <IconButton onClick={onReset} title="Return to start (0)">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M3 2v10M12 2L5 7l7 5V2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round"/>
+        </svg>
+      </IconButton>
+      <IconButton onClick={onPlayPause} title="Play/pause (space)">
+        {playing ? (
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <rect x="3" y="2" width="3" height="10" fill="currentColor"/>
+            <rect x="8" y="2" width="3" height="10" fill="currentColor"/>
+          </svg>
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M3 2l9 5-9 5V2z" fill="currentColor"/>
+          </svg>
+        )}
+      </IconButton>
+
+      {/* Current time: fixed width so it doesn't thrash */}
+      <div style={{
+        fontFamily: mono,
+        fontSize: 12,
+        fontVariantNumeric: 'tabular-nums',
+        width: 64, textAlign: 'right',
+        color: '#f6f4ef',
+      }}>
+        {fmt(time)}
+      </div>
+
+      {/* Scrub track */}
+      <div
+        ref={trackRef}
+        onMouseMove={onTrackMove}
+        onMouseLeave={onTrackLeave}
+        onMouseDown={onTrackDown}
+        style={{
+          flex: 1,
+          height: 22,
+          position: 'relative',
+          cursor: 'pointer',
+          display: 'flex', alignItems: 'center',
+        }}
+      >
+        <div style={{
+          position: 'absolute',
+          left: 0, right: 0, height: 4,
+          background: 'rgba(255,255,255,0.12)',
+          borderRadius: 2,
+        }}/>
+        <div style={{
+          position: 'absolute',
+          left: 0, width: `${pct}%`, height: 4,
+          background: 'oklch(72% 0.12 250)',
+          borderRadius: 2,
+        }}/>
+        <div style={{
+          position: 'absolute',
+          left: `${pct}%`, top: '50%',
+          width: 12, height: 12,
+          marginLeft: -6, marginTop: -6,
+          background: '#fff',
+          borderRadius: 6,
+          boxShadow: '0 2px 4px rgba(0,0,0,0.4)',
+        }}/>
+      </div>
+
+      {/* Duration: fixed width */}
+      <div style={{
+        fontFamily: mono,
+        fontSize: 12,
+        fontVariantNumeric: 'tabular-nums',
+        width: 64, textAlign: 'left',
+        color: 'rgba(246,244,239,0.55)',
+      }}>
+        {fmt(duration)}
+      </div>
+    </div>
+  );
+}
+
+function IconButton({ children, onClick, title }) {
+  const [hover, setHover] = React.useState(false);
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        width: 28, height: 28,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: hover ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: 6,
+        color: '#f6f4ef',
+        cursor: 'pointer',
+        padding: 0,
+        transition: 'background 120ms',
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+
+Object.assign(window, {
+  Easing, interpolate, animate, clamp,
+  TimelineContext, useTime, useTimeline,
+  Sprite, SpriteContext, useSprite,
+  TextSprite, ImageSprite, RectSprite,
+  Stage, PlaybackBar,
+});
+
+</script>
+<script type="text/babel">
+// monk-ui.jsx — shared UI primitives matching the monk.mode visual language
+// Colors, fonts, monk character, mountain backdrop, header, tab bar.
+
+// Theme palette — reads window.__MONK_DARK on every property access so
+// flipping the flag + remounting the tree retunes every color at once.
+const MONK_LIGHT = {
+  green: '#3DA837',
+  greenDark: '#2C7E28',
+  greenDeep: '#1F5A1B',
+  greenSoft: '#E8F5E5',
+  greenSofter: '#F4FAF2',
+  greenMid: '#7BC474',
+  sky: '#CFE7F4',
+  skyTop: '#DFF0F8',
+  cream: '#FFF8E0',
+  gold: '#F5C84A',
+  goldDark: '#E2A622',
+  ink: '#1B3A19',
+  inkSoft: '#3F5C3D',
+  inkDim: '#6B8A69',       // tertiary / meta
+  white: '#FFFFFF',
+  fire: '#FF7A1A',
+  fireGlow: '#FFB347',
+  card: '#FFFFFF',
+  cardAlt: '#F4FAF2',
+  border: '#D6EBD2',
+  borderSoft: '#E4F0E0',
+  shadow: 'rgba(27,58,25,0.08)',
+  bg: 'transparent', // let MountainBG show
+  chipBg: '#FFFFFF',
+  chipInactiveBorder: '#D6EBD2',
+  monkSkin: '#E8B888',
+  monkRobe: '#C95E2C',
+  monkHead: '#D9A47A',
+};
+
+const MONK_DARK = {
+  green: '#4BC93F',          // a touch brighter so it still pops on black
+  greenDark: '#2C7E28',
+  greenDeep: '#1F5A1B',
+  greenSoft: '#1F2A1E',      // dark green-tinted surface
+  greenSofter: '#16201A',
+  greenMid: '#2E4A2B',
+  sky: '#0B0B0B',
+  skyTop: '#0A0A0A',
+  cream: '#1F1D17',
+  gold: '#F5C84A',
+  goldDark: '#8A6E1E',
+  ink: '#F2F5F1',            // primary text
+  inkSoft: '#A8B3A6',        // secondary text
+  inkDim: '#6B756A',         // tertiary / meta
+  white: '#1A1F1A',          // "white" cards become dark green-black
+  fire: '#FF7A1A',
+  fireGlow: '#FFB347',
+  card: '#1A1F1A',
+  cardAlt: '#121612',
+  border: '#2A332A',
+  borderSoft: '#222922',
+  shadow: 'rgba(0,0,0,0.5)',
+  bg: '#0A0A0A',
+  chipBg: '#1A1F1A',
+  chipInactiveBorder: '#2A332A',
+  monkSkin: '#E8B888',
+  monkRobe: '#C95E2C',
+  monkHead: '#D9A47A',
+};
+
+const MONK = new Proxy({}, {
+  get(_, key) {
+    const src = window.__MONK_DARK ? MONK_DARK : MONK_LIGHT;
+    return src[key];
+  },
+});
+
+const FONT = `'Nunito', 'Quicksand', system-ui, -apple-system, sans-serif`;
+
+// Mountain layered background
+function MountainBG({ width = 390, height = 700, scrollY = 0, leafTime = null }) {
+  const dark = !!window.__MONK_DARK;
+  const far = dark ? '#1a2218' : '#B8DBA8';
+  const mid = dark ? '#213021' : MONK.greenMid;
+  const near = dark ? '#2a3d28' : MONK.green;
+  const gradient = dark
+    ? `linear-gradient(180deg, #0A0A0A 0%, #0C1410 70%)`
+    : `linear-gradient(180deg, ${MONK.skyTop} 0%, ${MONK.sky} 70%)`;
+  return (
+    <div style={{
+      position: 'absolute', inset: 0,
+      background: gradient,
+      overflow: 'hidden',
+    }}>
+      {/* Far mountains */}
+      <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none"
+        style={{ position: 'absolute', inset: 0 }}>
+        <g style={{ transform: `translateY(${scrollY * 0.1}px)` }}>
+          <path d={`M0 ${height*0.65} L${width*0.18} ${height*0.4} L${width*0.32} ${height*0.55} L${width*0.5} ${height*0.35} L${width*0.68} ${height*0.52} L${width*0.84} ${height*0.42} L${width} ${height*0.58} L${width} ${height} L0 ${height} Z`}
+            fill={far} opacity={dark ? 1 : 0.55} />
+        </g>
+        <g style={{ transform: `translateY(${scrollY * 0.2}px)` }}>
+          <path d={`M0 ${height*0.78} L${width*0.12} ${height*0.55} L${width*0.28} ${height*0.7} L${width*0.42} ${height*0.5} L${width*0.58} ${height*0.65} L${width*0.74} ${height*0.48} L${width*0.88} ${height*0.62} L${width} ${height*0.55} L${width} ${height} L0 ${height} Z`}
+            fill={mid} opacity={dark ? 1 : 0.85} />
+        </g>
+        <g style={{ transform: `translateY(${scrollY * 0.3}px)` }}>
+          <path d={`M0 ${height*0.88} L${width*0.08} ${height*0.7} L${width*0.22} ${height*0.82} L${width*0.36} ${height*0.65} L${width*0.5} ${height*0.78} L${width*0.64} ${height*0.62} L${width*0.78} ${height*0.75} L${width*0.92} ${height*0.68} L${width} ${height*0.78} L${width} ${height} L0 ${height} Z`}
+            fill={near} />
+        </g>
+      </svg>
+    </div>
+  );
+}
+
+// Phone frame (custom, more compact than the iOS starter, fits the style)
+function PhoneShell({ children, width = 390, height = 780, glow = false, shake = 0 }) {
+  return (
+    <div style={{
+      width: width + 16, height: height + 16,
+      borderRadius: 56,
+      background: 'linear-gradient(160deg, #1a1a1a, #0a0a0a)',
+      padding: 8,
+      position: 'relative',
+      transform: `translate(${shake ? Math.sin(Date.now()/30)*shake : 0}px, 0)`,
+      boxShadow: glow
+        ? `0 30px 80px rgba(0,0,0,0.35), 0 0 0 2px rgba(255,255,255,0.08), 0 0 80px ${MONK.green}55`
+        : '0 30px 80px rgba(0,0,0,0.35), 0 0 0 2px rgba(255,255,255,0.08)',
+      transition: 'box-shadow 600ms',
+    }}>
+      <div style={{
+        width, height, borderRadius: 48, overflow: 'hidden',
+        position: 'relative', background: window.__MONK_DARK ? '#0A0A0A' : MONK.skyTop,
+      }}>
+        {/* Dynamic island */}
+        <div style={{
+          position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)',
+          width: 110, height: 32, borderRadius: 20, background: '#000', zIndex: 100,
+        }} />
+        {/* Status bar */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: 50, zIndex: 90,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '20px 28px 0', fontFamily: '-apple-system, system-ui',
+          fontWeight: 600, fontSize: 15, color: MONK.ink,
+        }}>
+          <span>1:04</span>
+          <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+            <svg width="16" height="10" viewBox="0 0 16 10"><rect x="0" y="6" width="3" height="4" rx="1" fill={MONK.ink}/><rect x="4" y="4" width="3" height="6" rx="1" fill={MONK.ink}/><rect x="8" y="2" width="3" height="8" rx="1" fill={MONK.ink}/><rect x="12" y="0" width="3" height="10" rx="1" fill={MONK.ink}/></svg>
+            <svg width="14" height="10" viewBox="0 0 14 10"><path d="M7 2.5C8.7 2.5 10.3 3.2 11.4 4.3L12.4 3.3C11 2 9 1.2 7 1.2C5 1.2 3 2 1.6 3.3L2.6 4.3C3.7 3.2 5.3 2.5 7 2.5Z M7 5.5C8 5.5 9 5.9 9.7 6.5L10.6 5.6C9.6 4.7 8.4 4.2 7 4.2C5.6 4.2 4.4 4.7 3.4 5.6L4.3 6.5C5 5.9 6 5.5 7 5.5Z M7 8.5A1 1 0 1 1 7 8.6Z" fill={MONK.ink}/><circle cx="7" cy="8.5" r="1" fill={MONK.ink}/></svg>
+            <svg width="22" height="10" viewBox="0 0 22 10"><rect x="0.5" y="0.5" width="19" height="9" rx="2.5" stroke={MONK.ink} strokeOpacity="0.5" fill="none"/><rect x="2" y="2" width="16" height="6" rx="1.5" fill={MONK.ink}/><path d="M20.5 3.5V6.5C21 6.3 21.3 5.9 21.3 5.5C21.3 5.1 21 4.7 20.5 4.5Z" fill={MONK.ink} fillOpacity="0.5"/></svg>
+          </div>
+        </div>
+        {/* Content */}
+        <div style={{ position: 'absolute', inset: 0, paddingTop: 0 }}>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Header bar (streak / monk.mode / avatar+gear+moon-or-sun)
+function MonkHeader({ streak = 3, dark = false }) {
+  const isDark = !!window.__MONK_DARK;
+  return (
+    <div style={{
+      position: 'relative', zIndex: 50, paddingTop: 56,
+      padding: '56px 16px 12px', display: 'flex', alignItems: 'center',
+      justifyContent: 'space-between',
+      background: isDark ? 'rgba(10,10,10,0.75)' : 'rgba(255,255,255,0.7)',
+      backdropFilter: 'blur(8px)',
+      borderBottom: `1px solid ${isDark ? '#1F1F1F' : MONK.border}`,
+    }}>
+      <Pill bg={isDark ? '#0F1A0E' : 'white'} border={MONK.green}>
+        <span style={{ fontSize: 16 }}>🔥</span>
+        <span style={{ fontWeight: 800, color: MONK.greenDark, fontSize: 12, letterSpacing: 0.5 }}>{streak} STREAK</span>
+      </Pill>
+      <div style={{ fontFamily: FONT, fontWeight: 900, fontSize: 18, color: MONK.ink, letterSpacing: -0.5 }}>
+        monk.mode
+      </div>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <div style={{ width: 34, height: 34, borderRadius: 999, background: MONK.greenSoft,
+          border: `2px solid ${MONK.green}`, overflow: 'hidden',
+          display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <img src="reel/assets/user-avatar.jpg" alt="" style={{ width: 34, height: 34, objectFit: 'cover',
+            objectPosition: 'center 25%' }} />
+        </div>
+        <CircleBtn><span style={{ fontSize: 14 }}>⚙️</span></CircleBtn>
+        <CircleBtn filled sun={isDark}>
+          <span style={{ fontSize: 14 }}>{isDark ? '☀️' : '🌙'}</span>
+        </CircleBtn>
+      </div>
+    </div>
+  );
+}
+
+function Pill({ children, bg = 'white', border = MONK.green, padding = '6px 12px' }) {
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6,
+      padding, borderRadius: 999, background: bg,
+      border: `1.5px solid ${border}`,
+    }}>{children}</div>
+  );
+}
+
+function CircleBtn({ children, filled = false, sun = false }) {
+  const isDark = !!window.__MONK_DARK;
+  return (
+    <div style={{
+      width: 34, height: 34, borderRadius: 999,
+      background: filled
+        ? (isDark ? '#1F2A1E' : MONK.greenSoft)
+        : (isDark ? '#1F1F1F' : 'white'),
+      border: `1.5px solid ${isDark ? (filled ? MONK.green : '#2A2A2A') : MONK.green}`,
+      boxShadow: filled && sun ? `0 0 14px ${MONK.green}88` : 'none',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>{children}</div>
+  );
+}
+
+// Big rounded green button
+function GreenButton({ children, width = '100%', height = 56, onClick, pressed = false, disabled = false }) {
+  return (
+    <button onClick={onClick} disabled={disabled} style={{
+      width, height, borderRadius: 999,
+      background: disabled ? '#B8D4B5' : (pressed ? MONK.greenDark : MONK.green),
+      border: 'none',
+      boxShadow: pressed ? `inset 0 -2px 0 ${MONK.greenDeep}` : `0 4px 0 ${MONK.greenDark}`,
+      color: 'white', fontFamily: FONT, fontWeight: 800, fontSize: 18,
+      letterSpacing: -0.3, cursor: 'pointer',
+      transform: pressed ? 'translateY(2px)' : 'translateY(0)',
+      transition: 'all 100ms',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+    }}>{children}</button>
+  );
+}
+
+// Bottom tab bar
+function TabBar({ active = 'monk' }) {
+  const tabs = [
+    { id: 'home', label: 'Home', img: 'reel/assets/monk-relieved.png' },
+    { id: 'habits', label: 'Habits', img: 'reel/assets/monk-proud.png' },
+    { id: 'block', label: 'Block', img: 'reel/assets/monk-angry.png' },
+    { id: 'monk', label: 'Monk', img: 'reel/assets/monk-meditating.png' },
+    { id: 'crew', label: 'Crew', img: 'reel/assets/monk-happy.png' },
+  ];
+  return (
+    <div style={{
+      position: 'absolute', left: 8, right: 8, bottom: 14, zIndex: 60,
+      background: window.__MONK_DARK ? 'rgba(20,24,20,0.95)' : 'rgba(255,255,255,0.95)', borderRadius: 28,
+      padding: '8px 4px', display: 'flex', justifyContent: 'space-between',
+      boxShadow: window.__MONK_DARK
+        ? '0 6px 20px rgba(0,0,0,0.6), 0 0 0 1.5px rgba(75,201,63,0.35)'
+        : '0 6px 20px rgba(0,0,0,0.08), 0 0 0 1.5px rgba(61,168,55,0.25)',
+      backdropFilter: 'blur(10px)',
+    }}>
+      {tabs.map(t => {
+        const isActive = t.id === active;
+        return (
+          <div key={t.id} style={{
+            flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+            padding: '4px 4px', borderRadius: 18, minWidth: 0,
+            background: isActive ? MONK.green : 'transparent',
+            boxShadow: isActive && window.__MONK_DARK ? `0 0 16px ${MONK.green}88` : 'none',
+            transform: isActive ? 'scale(1.03)' : 'scale(1)',
+            transition: 'all 200ms cubic-bezier(.34,1.56,.64,1)',
+          }}>
+            <div style={{ marginBottom: 2, height: 28, width: 28, display: 'flex',
+              alignItems: 'center', justifyContent: 'center' }}>
+              <img src={t.img} alt="" draggable={false} style={{
+                width: 30, height: 30, objectFit: 'contain',
+                filter: isActive ? 'drop-shadow(0 1px 2px rgba(0,0,0,0.2))'
+                                  : 'saturate(0.7) opacity(0.85)',
+                transform: isActive ? 'scale(1.08)' : 'scale(1)',
+                transition: 'all 200ms cubic-bezier(.34,1.56,.64,1)',
+              }} />
+            </div>
+            <div style={{
+              fontFamily: FONT, fontWeight: 800, fontSize: 11,
+              color: isActive ? 'white' : MONK.inkSoft,
+            }}>{t.label}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Monk character using real sticker art
+// states: 'default' | 'meditate' | 'happy' | 'celebrate' | 'excited' | 'hyped'
+//         | 'proud' | 'cool' | 'halo' | 'angry' | 'alert' | 'thinking'
+//         | 'shocked' | 'sleep' | 'relieved' | 'romantic' | 'fighter'
+//         | 'thumbsup' (alias -> cool)
+const MONK_ART = {
+  default: 'reel/assets/monk.png',
+  meditate: 'reel/assets/monk-meditating.png',
+  happy: 'reel/assets/monk-happy.png',
+  celebrate: 'reel/assets/monk-celebrating.png',
+  excited: 'reel/assets/monk-excited.png',
+  hyped: 'reel/assets/monk-hyped.png',
+  proud: 'reel/assets/monk-proud.png',
+  cool: 'reel/assets/monk-cool.png',
+  thumbsup: 'reel/assets/monk-cool.png',
+  halo: 'reel/assets/monk-halo.png',
+  angry: 'reel/assets/monk-angry.png',
+  alert: 'reel/assets/monk-alert.png',
+  thinking: 'reel/assets/monk-thinking.png',
+  shocked: 'reel/assets/monk-shocked.png',
+  sleep: 'reel/assets/monk-sleeping.png',
+  relieved: 'reel/assets/monk-relieved.png',
+  romantic: 'reel/assets/monk-romantic.png',
+  fighter: 'reel/assets/monk-fighter.png',
+};
+
+function MonkCharacter({ state = 'default', size = 110, breath = 0, bounce = 0, rotate = 0 }) {
+  const src = MONK_ART[state] || MONK_ART.default;
+  const breathScale = 1 + breath * 0.04;
+  const bounceY = bounce * -8;
+  return (
+    <div style={{
+      position: 'relative', width: size, height: size,
+      transform: `translateY(${bounceY}px) scale(${breathScale}) rotate(${rotate}deg)`,
+      transition: 'transform 300ms ease-out',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <img src={src} alt="" style={{
+        width: '100%', height: '100%', objectFit: 'contain',
+        filter: 'drop-shadow(0 6px 12px rgba(27,58,25,0.2))',
+        userSelect: 'none', pointerEvents: 'none',
+      }} draggable={false} />
+    </div>
+  );
+}
+
+// Generic placeholder card
+function Card({ children, padding = 16, style = {} }) {
+  return (
+    <div style={{
+      background: MONK.card, borderRadius: 18, padding,
+      border: `1.5px solid ${MONK.border}`,
+      boxShadow: '0 2px 0 rgba(61,168,55,0.08)',
+      ...style,
+    }}>{children}</div>
+  );
+}
+
+Object.assign(window, { MONK, FONT, MountainBG, PhoneShell, MonkHeader, Pill, CircleBtn, GreenButton, TabBar, MonkCharacter, Card });
+</script>
+<script type="text/babel">
+// monk-particles.jsx — particle systems for the reel
+// Falling leaves, sparkles, "caging" bars, confetti, breath rings.
+
+// A pool of leaves drifting down. Driven by `time` (seconds).
+function FallingLeaves({ width, height, time, count = 14, intensity = 1 }) {
+  const seed = (i) => {
+    // deterministic per-leaf params
+    const r = Math.sin(i * 12.9898) * 43758.5453;
+    return r - Math.floor(r);
+  };
+  return (
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+      {Array.from({ length: count }).map((_, i) => {
+        const xBase = seed(i) * width;
+        const fallSpeed = 30 + seed(i + 100) * 25;
+        const swayAmp = 20 + seed(i + 200) * 30;
+        const swayFreq = 0.6 + seed(i + 300) * 0.6;
+        const startOffset = seed(i + 400) * height;
+        const y = ((time * fallSpeed + startOffset) % (height + 100)) - 50;
+        const x = xBase + Math.sin(time * swayFreq + i) * swayAmp;
+        const rot = time * 80 + i * 30;
+        const size = 12 + seed(i + 500) * 8;
+        const palette = ['#7BC474', '#A8D89E', '#5BA751', '#9BCC91', '#FFD24A', '#E8B23A'];
+        const color = palette[i % palette.length];
+        return (
+          <div key={i} style={{
+            position: 'absolute', left: x, top: y,
+            width: size, height: size * 0.7,
+            background: color,
+            borderRadius: '0 100% 0 100%',
+            transform: `rotate(${rot}deg)`,
+            opacity: 0.7 * intensity,
+            filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))',
+          }} />
+        );
+      })}
+    </div>
+  );
+}
+
+function Sparkles({ width, height, time, count = 10, cx, cy, radius = 80 }) {
+  return (
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+      {Array.from({ length: count }).map((_, i) => {
+        const phase = (time + i * 0.4) % 1.6;
+        const angle = (i / count) * Math.PI * 2 + time * 0.5;
+        const r = radius * (0.5 + phase / 1.6);
+        const x = (cx ?? width/2) + Math.cos(angle) * r;
+        const y = (cy ?? height/2) + Math.sin(angle) * r;
+        const opacity = phase < 0.2 ? phase / 0.2 : phase > 1.2 ? (1.6 - phase) / 0.4 : 1;
+        const scale = 0.4 + opacity * 0.8;
+        return (
+          <div key={i} style={{
+            position: 'absolute', left: x - 8, top: y - 8,
+            width: 16, height: 16, opacity,
+            transform: `scale(${scale}) rotate(${time * 180 + i * 45}deg)`,
+            color: '#FFD24A', fontSize: 14,
+          }}>✦</div>
+        );
+      })}
+    </div>
+  );
+}
+
+function Confetti({ width, height, time, count = 40, burst = 0 }) {
+  // burst: 0..1, where the explosion originates (top of screen)
+  const seed = (i) => {
+    const r = Math.sin(i * 7.123) * 43758.5453;
+    return r - Math.floor(r);
+  };
+  const colors = ['#FFD24A', '#FF7A1A', '#3DA837', '#7BC474', '#FF4A8E', '#4AB1E3'];
+  return (
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+      {Array.from({ length: count }).map((_, i) => {
+        const t = burst; // 0..1 progression
+        const angle = (seed(i) - 0.5) * Math.PI * 1.4;
+        const speed = 200 + seed(i + 99) * 250;
+        const x0 = width / 2;
+        const y0 = height * 0.35;
+        const gravity = 600;
+        const vx = Math.sin(angle) * speed;
+        const vy = -Math.cos(angle) * speed * (0.6 + seed(i + 7) * 0.4);
+        const x = x0 + vx * t;
+        const y = y0 + vy * t + 0.5 * gravity * t * t;
+        const rot = (time * 360 + i * 50);
+        const size = 8 + seed(i + 50) * 6;
+        const color = colors[i % colors.length];
+        const opacity = t < 0.05 ? t / 0.05 : t > 0.85 ? Math.max(0, (1 - t) / 0.15) : 1;
+        return (
+          <div key={i} style={{
+            position: 'absolute', left: x, top: y, width: size, height: size * 0.6,
+            background: color, transform: `rotate(${rot}deg)`,
+            opacity, borderRadius: 2,
+          }} />
+        );
+      })}
+    </div>
+  );
+}
+
+// Cage bars dropping down to "trap" apps
+function CageBars({ width, height, progress = 0, color = '#1B3A19' }) {
+  // progress 0..1 → bars descend from top
+  const bars = 6;
+  return (
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+      {Array.from({ length: bars }).map((_, i) => {
+        const x = (i + 0.5) * (width / bars);
+        const dropProgress = clamp((progress - i * 0.05) / 0.5, 0, 1);
+        const eased = Easing.easeOutBack(dropProgress);
+        const barH = height * eased;
+        return (
+          <div key={i} style={{
+            position: 'absolute',
+            left: x - 4, top: 0, width: 8, height: barH,
+            background: `linear-gradient(180deg, ${color}, #2C5C2A)`,
+            borderRadius: '0 0 4px 4px',
+            boxShadow: '0 0 8px rgba(0,0,0,0.3)',
+          }}>
+            {/* nub at the bottom */}
+            <div style={{
+              position: 'absolute', bottom: -3, left: -2, width: 12, height: 6,
+              background: color, borderRadius: 3,
+            }}/>
+          </div>
+        );
+      })}
+      {/* horizontal cross-beam at top */}
+      {progress > 0.05 && (
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: 8,
+          background: color,
+        }}/>
+      )}
+    </div>
+  );
+}
+
+// Pulsing breath rings around the timer circle
+function BreathRings({ cx, cy, time, color = MONK.green }) {
+  return (
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+      {[0, 1, 2].map(i => {
+        const phase = ((time + i * 1.2) % 3.6) / 3.6;
+        const r = 60 + phase * 80;
+        const opacity = (1 - phase) * 0.6;
+        return (
+          <div key={i} style={{
+            position: 'absolute', left: cx - r, top: cy - r,
+            width: r * 2, height: r * 2, borderRadius: '50%',
+            border: `2px solid ${color}`, opacity,
+          }}/>
+        );
+      })}
+    </div>
+  );
+}
+
+// "Pop-in" emoji burst at a point
+function EmojiBurst({ x, y, emoji, progress }) {
+  // progress: 0..1
+  if (progress <= 0 || progress >= 1) return null;
+  const scale = Easing.easeOutBack(Math.min(progress * 2.5, 1));
+  const fade = progress > 0.6 ? 1 - (progress - 0.6) / 0.4 : 1;
+  const ty = -progress * 30;
+  return (
+    <div style={{
+      position: 'absolute', left: x - 16, top: y - 16,
+      fontSize: 28, transform: `translateY(${ty}px) scale(${scale})`,
+      opacity: fade, pointerEvents: 'none',
+    }}>{emoji}</div>
+  );
+}
+
+Object.assign(window, { FallingLeaves, Sparkles, Confetti, CageBars, BreathRings, EmojiBurst });
+</script>
+<script type="text/babel">
+// monk-scenes.jsx — individual scene components for the reel
+// Each scene receives `localTime` and `progress` (0..1) from a Sprite.
+
+const { MONK, FONT, MountainBG, PhoneShell, MonkHeader, Pill, CircleBtn, GreenButton,
+  TabBar, MonkCharacter, Card } = window;
+
+// Scene wrapper that mounts a phone with a screen inside
+function PhoneScene({ children, glow = false, shake = 0 }) {
+  return (
+    <div style={{
+      position: 'absolute', inset: 0,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'linear-gradient(180deg, #FFF8E0 0%, #DFF0F8 50%, #C5E5D9 100%)',
+    }}>
+      <PhoneShell glow={glow} shake={shake}>
+        {children}
+      </PhoneShell>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// SCENE 1 — Home dashboard
+// Idle monk + breathing + tabs slide in
+// ─────────────────────────────────────────────
+function SceneHome({ localTime, progress }) {
+  const breath = Math.sin(localTime * 1.2) * 0.5 + 0.5;
+  const habitsDone = Math.min(3, Math.floor(localTime / 1.2) + 1);
+  const habitsProg = habitsDone / 3;
+  const pct = Math.round(habitsProg * 100);
+  const statusLabel = habitsDone >= 3 ? 'All done · Crushing it' : habitsDone >= 2 ? 'Almost there' : 'Warming up';
+
+  return (
+    <PhoneScene>
+      <div style={{ position: 'absolute', inset: 0 }}>
+        <MountainBG width={390} height={780} />
+      </div>
+
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
+        <MonkHeader />
+
+        <div style={{ padding: '20px 16px', flex: 1, position: 'relative' }}>
+          {/* Monk character */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8,
+            transform: `translateY(${animate({from:-20,to:0,start:0,end:0.5,ease:Easing.easeOutBack})(progress)}px)`,
+            opacity: animate({from:0,to:1,start:0,end:0.4})(progress) }}>
+            <MonkCharacter state="cool" size={130} breath={breath} />
+          </div>
+
+          {/* Status pill */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16,
+            opacity: animate({from:0,to:1,start:0.2,end:0.6})(progress) }}>
+            <Pill bg={MONK.greenSoft} border={MONK.green} padding="8px 16px">
+              <div style={{ width: 8, height: 8, borderRadius: 999, background: MONK.green }}/>
+              <span style={{ color: MONK.greenDark, fontWeight: 800, fontSize: 13, fontFamily: FONT, whiteSpace: 'nowrap' }}>
+                {pct}% · {statusLabel}
+              </span>
+            </Pill>
+          </div>
+
+          {/* Stat grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12,
+            transform: `translateY(${animate({from:20,to:0,start:0.3,end:0.7,ease:Easing.easeOutBack})(progress)}px)`,
+            opacity: animate({from:0,to:1,start:0.3,end:0.6})(progress) }}>
+            <Card padding={12}>
+              <div style={{ fontSize: 10, color: MONK.inkSoft, fontWeight: 700, letterSpacing: 1, marginBottom: 6,
+                fontFamily: FONT }}>HABITS DONE</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 8 }}>
+                <span style={{ fontSize: 28, fontWeight: 900, color: MONK.greenDark, fontFamily: FONT }}>
+                  {habitsDone}</span>
+                <span style={{ fontSize: 14, color: MONK.inkSoft, fontFamily: FONT }}>/ 3</span>
+              </div>
+              <div style={{ height: 4, background: MONK.greenSofter, borderRadius: 2, overflow: 'hidden' }}>
+                <div style={{ height: '100%', background: MONK.green, width: `${habitsProg*100}%`,
+                  transition: 'width 400ms cubic-bezier(.34,1.56,.64,1)' }}/>
+              </div>
+            </Card>
+            <Card padding={12}>
+              <div style={{ fontSize: 10, color: MONK.inkSoft, fontWeight: 700, letterSpacing: 1, marginBottom: 6,
+                fontFamily: FONT }}>DAY STREAK</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 22 }}>💪</span>
+                <span style={{ fontSize: 28, fontWeight: 900, color: MONK.greenDark, fontFamily: FONT }}>3</span>
+                <span style={{ fontSize: 14, color: MONK.inkSoft, fontFamily: FONT }}>days</span>
+              </div>
+            </Card>
+          </div>
+
+          {/* Action tiles */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 12,
+            opacity: animate({from:0,to:1,start:0.45,end:0.75})(progress) }}>
+            {[
+              { e: '🌱', l: 'Log Habit' },
+              { e: '🧘', l: 'Focus Timer' },
+              { e: '🐵', l: 'Monk My Apps' },
+            ].map((t, i) => (
+              <Card key={i} padding={12} style={{
+                textAlign: 'center',
+                transform: `scale(${animate({from:0.7,to:1,start:0.45+i*0.05,end:0.7+i*0.05,ease:Easing.easeOutBack})(progress)})`,
+              }}>
+                <div style={{ fontSize: 22, marginBottom: 4 }}>{t.e}</div>
+                <div style={{ fontSize: 11, fontWeight: 800, color: MONK.ink, fontFamily: FONT }}>{t.l}</div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Start session row */}
+          <div style={{ opacity: animate({from:0,to:1,start:0.6,end:0.85})(progress),
+            transform: `translateY(${animate({from:12,to:0,start:0.6,end:0.85,ease:Easing.easeOutCubic})(progress)}px)` }}>
+            <Card padding={14} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontWeight: 800, color: MONK.ink, fontFamily: FONT, fontSize: 14 }}>Start a Monk Session</div>
+                <div style={{ fontSize: 11, color: MONK.inkSoft, marginTop: 2, fontFamily: FONT }}>Block distracting apps & focus</div>
+              </div>
+              <div style={{ padding: '6px 14px', background: MONK.greenSofter, borderRadius: 999,
+                color: MONK.greenDark, fontWeight: 800, fontSize: 12, fontFamily: FONT }}>Go →</div>
+            </Card>
+          </div>
+        </div>
+
+        <TabBar active="home" />
+      </div>
+    </PhoneScene>
+  );
+}
+
+// ─────────────────────────────────────────────
+// SCENE 2 — Habits / Earn screen time
+// Habits ticking off one by one, gold bar filling
+// ─────────────────────────────────────────────
+function SceneHabits({ localTime, progress }) {
+  // Act 1 (0→3s): Schedule modal slides up, user schedules "Cook Healthy Meal"
+  // Act 2 (3→8s): modal dismisses, habits tick off one by one
+  const MODAL_IN = 0.2;
+  const MODAL_OUT = 2.9;
+  const ACT2_START = 3.1;
+  const t2 = localTime - ACT2_START; // time since act 2 starts
+
+  // Modal visibility progress: slides up between MODAL_IN and MODAL_IN+0.4,
+  // slides down between MODAL_OUT and MODAL_OUT+0.4
+  const modalIn = clamp((localTime - MODAL_IN) / 0.5, 0, 1);
+  const modalOut = clamp((localTime - MODAL_OUT) / 0.4, 0, 1);
+  const modalVisible = localTime > MODAL_IN && localTime < MODAL_OUT + 0.4;
+  const modalY = animate({from:780,to:0,start:0,end:1,ease:Easing.easeOutBack})(modalIn)
+               + animate({from:0,to:780,start:0,end:1,ease:Easing.easeInBack})(modalOut);
+  const modalOpacity = Math.min(modalIn, 1 - modalOut);
+  const backdropOpacity = Math.min(modalIn, 1 - modalOut) * 0.55;
+
+  // Tick habits at t2=1, 2.5, 4 (so 3s total after modal closes)
+  const completedCount = t2 > 4 ? 3 : t2 > 2.5 ? 2 : t2 > 1 ? 1 : 0;
+  const fillPct = (completedCount / 3) * 100;
+  const habits = [
+    { name: 'Gym', sub: 'Show up for your body every day', tag: 'FITNESS', emoji: '💪', time: '6:00 AM', completedAt: 1 },
+    { name: 'Cook Healthy Meal', sub: 'No junk food shortcuts', tag: 'WELLNESS', emoji: '🥗', time: '7:30 AM', completedAt: 2.5 },
+    { name: 'Study Session', sub: 'Focused deep work', tag: 'LEARNING', emoji: '📝', time: '10:00 AM', completedAt: 4 },
+  ];
+
+  return (
+    <PhoneScene>
+      <div style={{ position: 'absolute', inset: 0 }}>
+        <MountainBG width={390} height={780} />
+      </div>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
+        <MonkHeader />
+        <div style={{ padding: '14px 16px', flex: 1, overflow: 'hidden' }}>
+          <div style={{ fontSize: 11, color: MONK.inkSoft, letterSpacing: 1.2, fontWeight: 700, fontFamily: FONT }}>
+            DAILY HABITS</div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: MONK.ink, fontFamily: FONT, marginBottom: 12,
+            letterSpacing: -0.5 }}>Earn screen time 🌱</div>
+
+          {/* Tab pills */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            <div style={{ flex: 1, padding: '10px 0', borderRadius: 999, background: MONK.green,
+              boxShadow: `0 3px 0 ${MONK.greenDark}`,
+              textAlign: 'center', color: 'white', fontWeight: 800, fontFamily: FONT, fontSize: 14 }}>Today</div>
+            <div style={{ flex: 1, padding: '10px 0', borderRadius: 999, background: 'white',
+              border: `1.5px solid ${MONK.green}`,
+              textAlign: 'center', color: MONK.greenDark, fontWeight: 800, fontFamily: FONT, fontSize: 14 }}>Schedule</div>
+          </div>
+
+          {/* Earn bar */}
+          <div style={{
+            background: '#FBE7A6', border: `2px solid ${MONK.goldDark}`, borderRadius: 18,
+            padding: 14, marginBottom: 12, position: 'relative', overflow: 'hidden',
+          }}>
+            <div style={{ fontSize: 10, color: '#7A5A10', letterSpacing: 1.2, fontWeight: 700,
+              fontFamily: FONT }}>HABITS TODAY</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
+              <span style={{ fontSize: 18 }}>⚡</span>
+              <span style={{ fontSize: 28, fontWeight: 900, color: '#7A5A10', fontFamily: FONT }}>
+                {completedCount}</span>
+              <span style={{ fontSize: 14, color: '#7A5A10', fontFamily: FONT }}>/ 3</span>
+            </div>
+            <div style={{ fontSize: 10, color: '#7A5A10', letterSpacing: 1.2, fontWeight: 700, marginTop: 6,
+              fontFamily: FONT }}>COMPLETE ALL HABITS TO EARN</div>
+            <div style={{ display: 'inline-block', marginTop: 6, padding: '4px 10px',
+              background: '#FFF6D6', borderRadius: 999, border: `1.5px solid ${MONK.goldDark}`,
+              color: '#7A5A10', fontWeight: 800, fontSize: 12, fontFamily: FONT }}>3h screen break</div>
+            <div style={{ position: 'absolute', top: 12, right: 12 }}>
+              <MonkCharacter state="proud" size={64} breath={Math.sin(localTime*2)*0.5+0.5} />
+            </div>
+            {/* Fill progress */}
+            <div style={{ marginTop: 10, height: 6, background: '#F0D778', borderRadius: 3, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${fillPct}%`, background: MONK.goldDark,
+                transition: 'width 600ms cubic-bezier(.34,1.56,.64,1)' }}/>
+            </div>
+          </div>
+
+          {/* Habit rows */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {habits.map((h, i) => {
+              const isDone = t2 >= h.completedAt;
+              const justCompleted = isDone && t2 < h.completedAt + 0.4;
+              const pulse = justCompleted ? 1.05 : 1;
+              return (
+                <div key={i} style={{
+                  background: isDone ? MONK.greenSofter : 'white',
+                  border: `1.5px solid ${isDone ? MONK.green : MONK.border}`,
+                  borderRadius: 18, padding: 12,
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  transform: `scale(${pulse})`,
+                  transition: 'all 300ms cubic-bezier(.34,1.56,.64,1)',
+                }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10,
+                    background: isDone ? MONK.green : MONK.greenSoft,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
+                    {h.emoji}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 800, color: MONK.ink, fontFamily: FONT, fontSize: 14 }}>{h.name}</div>
+                    <div style={{ fontSize: 11, color: MONK.inkSoft, fontFamily: FONT, marginTop: 1 }}>{h.sub}</div>
+                    <div style={{ fontSize: 10, color: MONK.inkSoft, marginTop: 4, fontWeight: 700, letterSpacing: 0.5,
+                      fontFamily: FONT }}>{h.tag} · {h.time}</div>
+                  </div>
+                  {isDone ? (
+                    <div style={{ color: MONK.greenDark, fontWeight: 800, fontSize: 13, fontFamily: FONT }}>Done ✓</div>
+                  ) : (
+                    <div style={{ padding: '6px 14px', background: MONK.green, color: 'white',
+                      borderRadius: 999, fontWeight: 800, fontSize: 12, fontFamily: FONT,
+                      boxShadow: `0 2px 0 ${MONK.greenDark}` }}>Log</div>
+                  )}
+                  {justCompleted && (
+                    <div style={{ position: 'absolute', marginLeft: -20, marginTop: -40, fontSize: 24,
+                      animation: 'monkPop 600ms ease-out' }}>✨</div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <TabBar active="habits" />
+
+        {/* Schedule Habit modal overlay */}
+        {modalVisible && (
+          <>
+            {/* Backdrop */}
+            <div style={{
+              position: 'absolute', inset: 0, background: 'rgba(20,40,20,0.45)',
+              opacity: backdropOpacity, zIndex: 50, pointerEvents: 'none',
+            }} />
+            {/* Modal */}
+            <ScheduleHabitModal localTime={localTime} modalTranslateY={modalY} opacity={modalOpacity} />
+          </>
+        )}
+      </div>
+    </PhoneScene>
+  );
+}
+
+// ─────────────────────────────────────────────
+// Schedule Habit Modal (night-before scheduling)
+// ─────────────────────────────────────────────
+function ScheduleHabitModal({ localTime, modalTranslateY, opacity }) {
+  // interior animations sequence once modal is settled (after ~0.5s in)
+  const settled = Math.max(0, localTime - 0.5);
+  // user "taps" the repeat chip at t≈1.7, start time at t≈2.1, save at t≈2.6
+  const repeatFlip = settled > 1.2; // goes Once → Daily
+  const timeFlip = settled > 1.6;   // 7:00 AM becomes highlighted
+  const savePress = settled > 2.1 && settled < 2.4;
+
+  const dates = [
+    { d: 'TODAY', n: 19, active: false },
+    { d: 'MON', n: 20, active: true }, // "tomorrow" — night-before scheduling
+    { d: 'TUE', n: 21, active: false },
+    { d: 'WED', n: 22, active: false },
+    { d: 'THU', n: 23, active: false },
+    { d: 'FRI', n: 24, active: false },
+  ];
+  const startTimes = ['5:00 AM', '5:30 AM', '6:00 AM', '6:30 AM', '7:00 AM'];
+  const endTimes = ['7:30 AM', '8:00 AM', '8:30 AM', '9:00 AM', '9:30 AM'];
+  const reminders = ['At start', '5 min', '15 min', '30 min', '1 hour'];
+
+  return (
+    <div style={{
+      position: 'absolute', left: 0, right: 0, bottom: 0, top: 40,
+      zIndex: 60,
+      transform: `translateY(${modalTranslateY}px)`,
+      opacity,
+    }}>
+      <div style={{
+        position: 'relative', width: '100%', height: '100%',
+        background: 'white',
+        borderRadius: '22px 22px 0 0',
+        borderTop: `2px solid ${MONK.green}`,
+        borderLeft: `2px solid ${MONK.green}`,
+        borderRight: `2px solid ${MONK.green}`,
+        boxShadow: `0 -12px 40px rgba(27,58,25,0.25)`,
+        padding: '14px 14px 14px',
+        fontFamily: FONT,
+        display: 'flex', flexDirection: 'column',
+        overflow: 'hidden',
+      }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <div style={{ fontSize: 18, fontWeight: 900, color: MONK.ink, letterSpacing: -0.5 }}>Schedule a Habit</div>
+          <div style={{
+            width: 24, height: 24, borderRadius: 999,
+            border: `1.5px solid ${MONK.greenMid}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: MONK.greenDark, fontWeight: 900, fontSize: 12,
+          }}>×</div>
+        </div>
+
+        {/* Habit picker */}
+        <Label>HABIT</Label>
+        <div style={{
+          padding: '6px 9px', border: `1.5px solid ${MONK.green}`, borderRadius: 11,
+          background: MONK.greenSofter, display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7,
+        }}>
+          <div style={{ width: 22, height: 22, borderRadius: 6, background: MONK.green,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>🥗</div>
+          <div style={{ flex: 1, fontWeight: 800, fontSize: 12, color: MONK.ink }}>Cook Healthy Meal</div>
+          <div style={{ color: MONK.greenDark, fontSize: 9 }}>▼</div>
+        </div>
+
+        {/* Name */}
+        <Label>NAME</Label>
+        <div style={{
+          padding: '6px 9px', border: `1.5px solid ${MONK.green}`, borderRadius: 9,
+          color: MONK.ink, fontSize: 11, fontWeight: 600, marginBottom: 6,
+        }}>Cook Healthy Meal</div>
+
+        {/* Note */}
+        <Label>NOTE <span style={{ color: MONK.inkSoft, fontWeight: 500, textTransform: 'none' }}>(optional)</span></Label>
+        <div style={{
+          padding: '6px 9px', border: `1.5px solid ${MONK.greenMid}`, borderRadius: 9,
+          color: MONK.inkSoft, fontSize: 11, fontWeight: 500, marginBottom: 7,
+        }}>No junk food shortcuts</div>
+
+        {/* Date row */}
+        <Label>DATE</Label>
+        <div style={{ display: 'flex', gap: 4, marginBottom: 7 }}>
+          {dates.map((d, i) => (
+            <div key={i} style={{
+              flex: 1, minWidth: 0, padding: '4px 0', textAlign: 'center', borderRadius: 8,
+              background: d.active ? MONK.green : 'white',
+              border: `1.5px solid ${d.active ? MONK.green : MONK.greenMid}`,
+              boxShadow: d.active ? `0 2px 0 ${MONK.greenDark}` : 'none',
+              color: d.active ? 'white' : MONK.greenDark,
+            }}>
+              <div style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: 0.4 }}>{d.d}</div>
+              <div style={{ fontSize: 13, fontWeight: 900, lineHeight: 1 }}>{d.n}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Start time */}
+        <Label>START TIME</Label>
+        <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
+          {startTimes.map((t, i) => {
+            const active = i === 4; // 7:00 AM
+            return (
+              <div key={i} style={{
+                flex: 1, minWidth: 0, padding: '4px 2px', borderRadius: 999, textAlign: 'center',
+                background: active ? MONK.green : 'white',
+                border: `1.5px solid ${active ? MONK.green : MONK.greenMid}`,
+                boxShadow: active ? `0 2px 0 ${MONK.greenDark}` : 'none',
+                color: active ? 'white' : MONK.greenDark,
+                fontSize: 9, fontWeight: 800, whiteSpace: 'nowrap',
+                transform: active && timeFlip && settled < 1.9 ? 'scale(1.12)' : 'scale(1)',
+                transition: 'transform 300ms cubic-bezier(.34,1.56,.64,1)',
+              }}>{t}</div>
+            );
+          })}
+        </div>
+
+        {/* End time */}
+        <Label>END TIME</Label>
+        <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
+          {endTimes.map((t, i) => {
+            const active = i === 1; // 8:00 AM
+            return (
+              <div key={i} style={{
+                flex: 1, minWidth: 0, padding: '4px 2px', borderRadius: 999, textAlign: 'center',
+                background: active ? MONK.green : 'white',
+                border: `1.5px solid ${active ? MONK.green : MONK.greenMid}`,
+                boxShadow: active ? `0 2px 0 ${MONK.greenDark}` : 'none',
+                color: active ? 'white' : MONK.greenDark,
+                fontSize: 9, fontWeight: 800, whiteSpace: 'nowrap',
+              }}>{t}</div>
+            );
+          })}
+        </div>
+
+        {/* Repeat */}
+        <Label>REPEAT</Label>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+          {['Once', 'Daily', 'Weekly'].map((r, i) => {
+            const active = repeatFlip ? r === 'Daily' : r === 'Once';
+            return (
+              <div key={i} style={{
+                flex: 1, padding: '6px 0', textAlign: 'center', borderRadius: 999,
+                background: active ? MONK.green : 'white',
+                border: `1.5px solid ${active ? MONK.green : MONK.greenMid}`,
+                boxShadow: active ? `0 2px 0 ${MONK.greenDark}` : 'none',
+                color: active ? 'white' : MONK.greenDark,
+                fontSize: 10.5, fontWeight: 800,
+                transform: active && repeatFlip && settled < 1.5 ? 'scale(1.08)' : 'scale(1)',
+                transition: 'all 300ms cubic-bezier(.34,1.56,.64,1)',
+              }}>{r}</div>
+            );
+          })}
+        </div>
+
+        {/* Reminder */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
+          <Label noGap>REMINDER</Label>
+          <div style={{
+            width: 28, height: 15, borderRadius: 999, background: MONK.green,
+            position: 'relative', boxShadow: `inset 0 1px 2px rgba(0,0,0,0.1)`,
+          }}>
+            <div style={{
+              position: 'absolute', top: 1.5, right: 1.5, width: 12, height: 12, borderRadius: 999,
+              background: 'white', boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+            }}/>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 4, marginBottom: 8, marginTop: 3 }}>
+          {reminders.map((r, i) => {
+            const active = i === 2; // 15 min
+            return (
+              <div key={i} style={{
+                flex: 1, minWidth: 0, padding: '4px 2px', borderRadius: 999, textAlign: 'center',
+                background: active ? MONK.green : 'white',
+                border: `1.5px solid ${active ? MONK.green : MONK.greenMid}`,
+                boxShadow: active ? `0 2px 0 ${MONK.greenDark}` : 'none',
+                color: active ? 'white' : MONK.greenDark,
+                fontSize: 9, fontWeight: 800, whiteSpace: 'nowrap',
+              }}>{r}</div>
+            );
+          })}
+        </div>
+
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
+          <div style={{
+            flex: 1, padding: '9px 0', borderRadius: 999, textAlign: 'center',
+            background: MONK.greenSofter, border: `1.5px solid ${MONK.greenMid}`,
+            color: MONK.greenDark, fontWeight: 800, fontSize: 13,
+          }}>Cancel</div>
+          <div style={{
+            flex: 1, padding: '9px 0', borderRadius: 999, textAlign: 'center',
+            background: MONK.green,
+            boxShadow: savePress ? `0 1px 0 ${MONK.greenDark}` : `0 4px 0 ${MONK.greenDark}`,
+            color: 'white', fontWeight: 900, fontSize: 13,
+            transform: savePress ? 'translateY(2px)' : 'translateY(0)',
+            transition: 'all 120ms ease-out',
+          }}>Save Block</div>
+        </div>
+
+        {/* Confirmation sparkle when saving */}
+        {savePress && (
+          <div style={{
+            position: 'absolute', bottom: 58, right: 40, fontSize: 22,
+            animation: 'monkPop 500ms ease-out',
+          }}>✨</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Label({ children, noGap = false }) {
+  return (
+    <div style={{
+      fontSize: 9, fontWeight: 800, letterSpacing: 1.2,
+      color: MONK.inkSoft, fontFamily: FONT,
+      marginBottom: noGap ? 0 : 4, textTransform: 'uppercase',
+    }}>{children}</div>
+  );
+}
+
+Object.assign(window, { PhoneScene, SceneHome, SceneHabits });
+</script>
+<script type="text/babel">
+// monk-scenes-2.jsx — Timer / Block / Crew scenes
+
+const { MONK, FONT, MountainBG, PhoneShell, MonkHeader, Pill, CircleBtn, GreenButton,
+  TabBar, MonkCharacter, Card, PhoneScene } = window;
+
+// ─────────────────────────────────────────────
+// SCENE 3 — Focus Timer (Monk tab) [HERO TIMER]
+// Vibe selector + breathing rings + countdown begin
+// ─────────────────────────────────────────────
+function SceneTimer({ localTime, progress }) {
+  // Begin button pressed at t=2.5s, then timer counts
+  const beginPressed = localTime > 2.5;
+  const t0 = 2.5;
+  const elapsed = beginPressed ? localTime - t0 : 0;
+  const totalSecs = 25 * 60; // 25:00
+  const remaining = Math.max(0, totalSecs - Math.floor(elapsed * 12)); // sped-up
+  const mm = Math.floor(remaining / 60);
+  const ss = remaining % 60;
+  const timerText = `${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+  const buttonPressFrame = localTime > t0 - 0.1 && localTime < t0 + 0.3;
+
+  // Hearts pop while character is meditating
+  const heartProgress = (localTime % 2.4) / 2.4;
+  const showHeart = beginPressed;
+
+  // Vibe selection animates: Off → Rainy Tokyo at t=1.2
+  const vibeSelected = localTime > 1.2 ? 'rainy' : 'off';
+
+  return (
+    <PhoneScene glow={beginPressed}>
+      <div style={{ position: 'absolute', inset: 0 }}>
+        <MountainBG width={390} height={780} />
+      </div>
+      {/* Rain particles when Rainy Tokyo selected */}
+      {vibeSelected === 'rainy' && beginPressed && (
+        <div style={{ position: 'absolute', inset: 8, borderRadius: 48, overflow: 'hidden', zIndex: 30,
+          pointerEvents: 'none' }}>
+          {Array.from({ length: 30 }).map((_, i) => {
+            const x = (i * 13.7) % 390;
+            const speed = 100 + (i % 7) * 12;
+            const y = ((localTime * speed + i * 47) % 800) - 50;
+            return <div key={i} style={{
+              position: 'absolute', left: x, top: y, width: 1.5, height: 14,
+              background: 'linear-gradient(180deg, rgba(143,200,238,0.0), rgba(143,200,238,0.7))',
+              transform: 'rotate(8deg)',
+            }}/>;
+          })}
+        </div>
+      )}
+
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
+        <MonkHeader />
+
+        {/* Mode pills row */}
+        <div style={{ padding: '12px 16px 6px', display: 'flex', gap: 8 }}>
+          {[
+            { e: '🧘', l: 'Deep · 25m', active: true },
+            { e: '☕', l: 'Rest · 5m' },
+            { e: '🔔', l: 'Custom' },
+          ].map((m, i) => (
+            <div key={i} style={{
+              padding: '8px 14px', borderRadius: 999,
+              background: m.active ? MONK.green : 'white',
+              border: `1.5px solid ${MONK.green}`,
+              color: m.active ? 'white' : MONK.greenDark,
+              fontWeight: 800, fontSize: 12, fontFamily: FONT,
+              display: 'flex', alignItems: 'center', gap: 4,
+              boxShadow: m.active ? `0 3px 0 ${MONK.greenDark}` : 'none',
+            }}>
+              <span style={{ fontSize: 13 }}>{m.e}</span>{m.l}
+            </div>
+          ))}
+        </div>
+
+        {/* Vibe row */}
+        <div style={{ padding: '4px 16px 12px' }}>
+          <div style={{ fontSize: 10, color: MONK.inkSoft, letterSpacing: 1, fontWeight: 700,
+            fontFamily: FONT, marginBottom: 6 }}>🎵 VIBE</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {[
+              { e: '🔇', l: 'Off', id: 'off' },
+              { e: '🌧️', l: 'Rainy Tokyo', id: 'rainy' },
+              { e: '☕', l: 'Coffee House', id: 'coffee' },
+            ].map((v, i) => {
+              const sel = vibeSelected === v.id;
+              return (
+                <div key={i} style={{
+                  padding: '6px 12px', borderRadius: 999,
+                  background: sel ? MONK.green : 'white',
+                  border: `1.5px solid ${sel ? MONK.greenDark : MONK.border}`,
+                  color: sel ? 'white' : MONK.ink,
+                  fontWeight: 700, fontSize: 12, fontFamily: FONT,
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  transform: sel ? 'scale(1.05)' : 'scale(1)',
+                  transition: 'all 300ms cubic-bezier(.34,1.56,.64,1)',
+                }}>
+                  <span>{v.e}</span>{v.l}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Timer area */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+          justifyContent: 'center', position: 'relative', paddingBottom: 60 }}>
+
+          {/* Breath rings (only when active) */}
+          {beginPressed && (
+            <>
+              {[0, 1, 2].map(i => {
+                const phase = ((elapsed + i * 1.2) % 3.6) / 3.6;
+                const r = 90 + phase * 80;
+                const opacity = (1 - phase) * 0.5;
+                return (
+                  <div key={i} style={{
+                    position: 'absolute', top: '40%', left: '50%',
+                    transform: `translate(-50%, -50%) scale(${r/90})`,
+                    width: 180, height: 180, borderRadius: '50%',
+                    border: `2px solid ${MONK.green}`, opacity,
+                  }}/>
+                );
+              })}
+            </>
+          )}
+
+          {/* Circle with monk */}
+          <div style={{
+            position: 'relative', width: 200, height: 200, borderRadius: '50%',
+            background: 'rgba(255,255,255,0.7)', border: `3px solid ${MONK.cream}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            marginBottom: 12,
+            transform: `scale(${beginPressed ? 1 + Math.sin(elapsed*1.5)*0.02 : 1})`,
+            transition: 'transform 400ms ease-out',
+          }}>
+            <MonkCharacter
+              state={beginPressed ? 'meditate' : 'default'}
+              size={130}
+              breath={Math.sin(localTime*1.5)*0.5+0.5}
+            />
+            {showHeart && (
+              <>
+                <div style={{ position: 'absolute', top: 30 + Math.sin(localTime*2)*4, left: 60,
+                  fontSize: 14, opacity: 1 - heartProgress, transform: `translateY(${-heartProgress*40}px)` }}>💚</div>
+                <div style={{ position: 'absolute', top: 25, right: 50,
+                  fontSize: 12, opacity: 1 - heartProgress*0.8,
+                  transform: `translateY(${-heartProgress*30}px) translateX(${heartProgress*5}px)` }}>💚</div>
+              </>
+            )}
+          </div>
+
+          <div style={{
+            fontFamily: FONT, fontWeight: 900, fontSize: 56, color: MONK.ink,
+            letterSpacing: -2, fontVariantNumeric: 'tabular-nums',
+            transform: buttonPressFrame ? 'scale(1.08)' : 'scale(1)',
+            transition: 'transform 300ms cubic-bezier(.34,1.56,.64,1)',
+          }}>{timerText}</div>
+
+          {/* Begin button */}
+          <div style={{ marginTop: 24, width: '70%' }}>
+            <GreenButton pressed={buttonPressFrame}>
+              {beginPressed ? '⏸  Pause' : '▶  Begin'}
+            </GreenButton>
+          </div>
+
+          {/* Today's habits progress */}
+          <div style={{ marginTop: 18, width: '70%',
+            background: 'white', border: `1.5px solid ${MONK.border}`, borderRadius: 18, padding: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontWeight: 800, color: MONK.ink, fontFamily: FONT, fontSize: 13 }}>Today's habits</span>
+              <span style={{ color: MONK.inkSoft, fontSize: 12, fontFamily: FONT }}>1/3</span>
+            </div>
+            <div style={{ marginTop: 6, height: 6, background: MONK.greenSofter, borderRadius: 3, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: '33%', background: MONK.green }}/>
+            </div>
+          </div>
+        </div>
+
+        <TabBar active="monk" />
+      </div>
+    </PhoneScene>
+  );
+}
+
+// ─────────────────────────────────────────────
+// SCENE 4 — Block (Monk Mode toggle ON) [HERO MOMENT]
+// User taps "Monk My Apps" → cage bars drop → apps locked
+// ─────────────────────────────────────────────
+function SceneBlock({ localTime, progress }) {
+  // T=0..1: idle "off" state, T=1: tap, T=1.2..3.5: cage drops, apps shake, locked badge
+  const tapTime = 1.2;
+  const cageProgress = clamp((localTime - tapTime) / 1.5, 0, 1);
+  const tapped = localTime > tapTime - 0.1 && localTime < tapTime + 0.3;
+  const isCaged = localTime > tapTime;
+  const lockedShown = localTime > tapTime + 1.4;
+
+  // Apps in a grid get caged
+  const apps = [
+    { name: 'IG', color: '#E1306C', emoji: '📷' },
+    { name: 'TT', color: '#000', emoji: '🎵' },
+    { name: 'YT', color: '#FF0000', emoji: '▶️' },
+    { name: 'X', color: '#1DA1F2', emoji: '🐦' },
+    { name: 'FB', color: '#1877F2', emoji: '📘' },
+    { name: 'RD', color: '#FF4500', emoji: '👽' },
+    { name: 'SC', color: '#FFFC00', emoji: '👻' },
+    { name: 'NF', color: '#E50914', emoji: '🎬' },
+    { name: 'DC', color: '#5865F2', emoji: '🎮' },
+  ];
+
+  return (
+    <PhoneScene glow={isCaged} shake={tapped ? 1 : 0}>
+      <div style={{ position: 'absolute', inset: 0 }}>
+        <MountainBG width={390} height={780} />
+      </div>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
+        <MonkHeader />
+
+        <div style={{ padding: '14px 16px', flex: 1, position: 'relative' }}>
+          {/* Hero card */}
+          <div style={{
+            background: isCaged ? '#1B3A19' : MONK.greenSoft,
+            border: `2px solid ${isCaged ? '#0F2A0E' : MONK.green}`,
+            borderRadius: 22, padding: 18, textAlign: 'center', marginBottom: 14,
+            transition: 'all 600ms cubic-bezier(.34,1.56,.64,1)',
+            position: 'relative', overflow: 'hidden',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+              <MonkCharacter
+                state={isCaged ? 'halo' : 'thinking'}
+                size={100}
+                breath={Math.sin(localTime*1.5)*0.5+0.5}
+              />
+            </div>
+            <div style={{
+              fontWeight: 900, fontSize: 22, color: isCaged ? 'white' : MONK.ink,
+              fontFamily: FONT, letterSpacing: -0.5,
+              transition: 'color 400ms',
+            }}>{isCaged ? 'Monk Mode ON' : 'Monk Mode Off'}</div>
+            <div style={{
+              fontSize: 12, color: isCaged ? '#A8D89E' : MONK.inkSoft,
+              fontFamily: FONT, marginTop: 4,
+              transition: 'color 400ms',
+            }}>
+              {isCaged ? `${apps.length} apps caged · 3h focus` : `${apps.length} apps caged`}
+            </div>
+            <div style={{ marginTop: 12 }}>
+              <GreenButton pressed={tapped} height={48}>
+                {isCaged ? '🔒 Locked Down' : 'Monk My Apps'}
+              </GreenButton>
+            </div>
+          </div>
+
+          {/* App grid being caged */}
+          <div style={{ position: 'relative',
+            background: 'white', borderRadius: 18, padding: 12,
+            border: `1.5px solid ${MONK.border}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: MONK.greenSoft,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🛡️</div>
+                <div>
+                  <div style={{ fontWeight: 800, color: MONK.ink, fontFamily: FONT, fontSize: 14 }}>
+                    {apps.length} apps</div>
+                  <div style={{ fontSize: 10, color: MONK.inkSoft, fontFamily: FONT }}>
+                    {isCaged ? 'Now blocked' : 'Ready to block'}</div>
+                </div>
+              </div>
+              <div style={{
+                padding: '6px 14px', borderRadius: 999,
+                background: isCaged ? MONK.greenDark : 'white',
+                border: `1.5px solid ${MONK.green}`, color: isCaged ? 'white' : MONK.greenDark,
+                fontWeight: 800, fontSize: 12, fontFamily: FONT,
+              }}>{isCaged ? 'Active' : 'Edit Apps'}</div>
+            </div>
+
+            {/* App tile grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6,
+              position: 'relative', minHeight: 88 }}>
+              {apps.map((app, i) => {
+                const shake = isCaged && localTime < tapTime + 0.8
+                  ? Math.sin((localTime - tapTime) * 30 + i) * 2 : 0;
+                const fade = isCaged ? 0.3 : 1;
+                return (
+                  <div key={i} style={{
+                    aspectRatio: '1', borderRadius: 10, background: app.color,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 22, transform: `translateX(${shake}px)`,
+                    opacity: fade, transition: 'opacity 400ms',
+                    filter: isCaged ? 'grayscale(0.6) brightness(0.7)' : 'none',
+                  }}>{app.emoji}</div>
+                );
+              })}
+              {/* Cage bars overlay */}
+              {isCaged && (
+                <div style={{ position: 'absolute', inset: -2, pointerEvents: 'none', overflow: 'hidden',
+                  borderRadius: 10 }}>
+                  {Array.from({ length: 6 }).map((_, i) => {
+                    const dropProgress = clamp((cageProgress - i * 0.04) / 0.5, 0, 1);
+                    const eased = Easing.easeOutBack(dropProgress);
+                    const heightPct = 100 * eased;
+                    return (
+                      <div key={i} style={{
+                        position: 'absolute',
+                        left: `${(i * 100) / 6 + 100/12 - 1}%`,
+                        top: 0, width: 3,
+                        height: `${heightPct}%`,
+                        background: 'linear-gradient(180deg, #4A7C46, #2C5C2A)',
+                        borderRadius: '0 0 2px 2px',
+                        boxShadow: '1px 0 2px rgba(0,0,0,0.2)',
+                      }}/>
+                    );
+                  })}
+                  {/* Lock icon centered */}
+                  {lockedShown && (
+                    <div style={{
+                      position: 'absolute', top: '50%', left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      width: 36, height: 36, borderRadius: 999,
+                      background: '#1B3A19',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      animation: 'monkPop 500ms cubic-bezier(.34,1.56,.64,1) backwards',
+                    }}>🔒</div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Duration row */}
+          <div style={{ marginTop: 12, opacity: isCaged ? 0.5 : 1, transition: 'opacity 400ms' }}>
+            <div style={{ fontSize: 10, color: MONK.inkSoft, letterSpacing: 1, fontWeight: 700,
+              fontFamily: FONT, marginBottom: 6 }}>AUTOMATION</div>
+            <Card padding={14}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 16 }}>🕐</span>
+                  <div>
+                    <div style={{ fontWeight: 800, color: MONK.ink, fontFamily: FONT, fontSize: 13 }}>Monk Duration</div>
+                    <div style={{ fontSize: 10, color: MONK.inkSoft, fontFamily: FONT }}>How long each blocking session lasts</div>
+                  </div>
+                </div>
+                <div style={{ fontWeight: 900, color: MONK.greenDark, fontFamily: FONT, fontSize: 16 }}>3h</div>
+              </div>
+            </Card>
+          </div>
+        </div>
+        <TabBar active="block" />
+      </div>
+    </PhoneScene>
+  );
+}
+
+// ─────────────────────────────────────────────
+// SCENE 5 — Crew (people joining)
+// Crews list slides in, new member badge pops
+// ─────────────────────────────────────────────
+function SceneCrew({ localTime, progress }) {
+  const newMemberAt = 2.2;
+  const newMemberShown = localTime > newMemberAt;
+  const newMemberPulse = newMemberShown && localTime < newMemberAt + 0.5;
+
+  // Member avatar palette (initials + color)
+  const mk = (i, c) => ({ i, c });
+  const crews = [
+    { name: 'Network School', tag: 'School', tagColor: '#A78BE5', tagBg: '#E8DEF8', emoji: '🎓',
+      roster: [mk('AK','#F4B86A'), mk('JD','#8FC9E5'), mk('MR','#E59FBF'), mk('SP','#B8E096'), mk('TL','#C7A8E8'), mk('RN','#F09090'), mk('YU','#FFD27A')] },
+    { name: '5k Run Grinders', tag: 'Fitness', tagColor: '#E55A5A', tagBg: '#FBDADA', emoji: '🏃',
+      roster: [mk('EV','#7BC474'), mk('CH','#F4A87A'), mk('MK','#9FBCE5'), mk('LA','#E5B89F'), mk('BJ','#C8E098')] },
+    { name: 'Healthy Eating', tag: 'Fitness', tagColor: '#E55A5A', tagBg: '#FBDADA', emoji: '🥗',
+      roster: [mk('NI','#F4C46A'), mk('RO','#96C4E5'), mk('DA','#E596BF'), ...(newMemberShown ? [mk('+YOU','#3DA837')] : [])] },
+    { name: 'Deep Work Club', tag: 'Work', tagColor: '#5A8FE5', tagBg: '#DBEAFB', emoji: '💼',
+      roster: [mk('HS','#F4B86A'), mk('KT','#B8D4E5'), mk('VP','#E5A8CA'), mk('OM','#C0E096'), mk('ZN','#E8C57A'), mk('LQ','#A8C8E8')] },
+    { name: 'Sunrise Readers', tag: 'Mindful', tagColor: '#4A9A3E', tagBg: '#D8EDD3', emoji: '📚',
+      roster: [mk('GA','#F4D86A'), mk('NU','#98BFE5')] },
+  ];
+
+  return (
+    <PhoneScene>
+      <div style={{ position: 'absolute', inset: 0 }}>
+        <MountainBG width={390} height={780} />
+      </div>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
+        <MonkHeader />
+
+        <div style={{ padding: '14px 16px', flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <MonkCharacter state="happy" size={56} breath={Math.sin(localTime*1.5)*0.5+0.5} />
+              <div style={{ whiteSpace: 'nowrap' }}>
+                <div style={{ fontSize: 22, fontWeight: 900, color: MONK.ink, fontFamily: FONT,
+                  letterSpacing: -0.5, lineHeight: 1 }}>Your Crew</div>
+                <div style={{ fontSize: 11, color: MONK.inkSoft, fontFamily: FONT, marginTop: 3 }}>
+                  5 crews · {23 + (newMemberShown ? 1 : 0)} posts</div>
+              </div>
+            </div>
+            <div style={{
+              padding: '8px 16px', borderRadius: 999, background: MONK.green,
+              color: 'white', fontWeight: 800, fontSize: 13, fontFamily: FONT,
+              boxShadow: `0 3px 0 ${MONK.greenDark}`,
+              display: 'flex', alignItems: 'center', gap: 4,
+            }}>👋 Invite</div>
+          </div>
+
+          {/* Filter pills */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            {[
+              { l: 'Feed', active: false },
+              { l: 'Crews', active: true },
+              { l: 'Challenges', active: false },
+              { l: 'Friends', active: false },
+            ].map((p, i) => (
+              <div key={i} style={{
+                padding: '8px 14px', borderRadius: 999,
+                background: p.active ? MONK.green : MONK.greenSofter,
+                color: p.active ? 'white' : MONK.greenDark,
+                fontWeight: 800, fontSize: 12, fontFamily: FONT,
+                boxShadow: p.active ? `0 3px 0 ${MONK.greenDark}` : 'none',
+              }}>{p.l}</div>
+            ))}
+          </div>
+
+          {/* Crew rows */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {crews.map((c, i) => {
+              const showAt = i * 0.13;
+              const inProg = clamp((localTime - showAt) / 0.45, 0, 1);
+              const slide = animate({from:30,to:0,start:0,end:1,ease:Easing.easeOutBack})(inProg);
+              const isHealthy = i === 2;
+              const memberCount = c.roster.length;
+              return (
+                <div key={i} style={{
+                  background: 'white', borderRadius: 14,
+                  padding: '9px 11px', display: 'flex', alignItems: 'center', gap: 10,
+                  border: `1.5px solid ${MONK.border}`,
+                  boxShadow: '0 2px 0 rgba(61,168,55,0.06)',
+                  transform: `translateY(${slide}px)`,
+                  opacity: inProg,
+                }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                    background: 'linear-gradient(135deg, #B8DBA8, #7BC474)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 19 }}>
+                    {c.emoji}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontWeight: 800, color: MONK.ink, fontFamily: FONT, fontSize: 13.5,
+                        overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                        {c.name}</span>
+                      <span style={{ padding: '1px 6px', borderRadius: 5,
+                        background: c.tagBg, color: c.tagColor,
+                        fontWeight: 800, fontSize: 9, fontFamily: FONT, flexShrink: 0 }}>{c.tag}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                      {/* Avatar stack */}
+                      <div style={{ display: 'flex' }}>
+                        {c.roster.slice(0, 4).map((m, mi) => {
+                          const justJoined = isHealthy && newMemberShown && m.i === '+YOU';
+                          return (
+                            <div key={mi} style={{
+                              width: 18, height: 18, borderRadius: 999,
+                              background: m.c,
+                              border: `1.5px solid white`,
+                              marginLeft: mi === 0 ? 0 : -6,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              color: 'white', fontWeight: 800, fontSize: 7.5, fontFamily: FONT,
+                              letterSpacing: -0.2,
+                              boxShadow: justJoined ? `0 0 0 2px ${MONK.green}` : 'none',
+                              transform: justJoined && newMemberPulse ? 'scale(1.25)' : 'scale(1)',
+                              transition: 'transform 300ms cubic-bezier(.34,1.56,.64,1)',
+                              zIndex: 10 - mi,
+                            }}>{m.i.replace('+','')}</div>
+                          );
+                        })}
+                        {c.roster.length > 4 && (
+                          <div style={{
+                            width: 18, height: 18, borderRadius: 999,
+                            background: '#E8F0E6', border: `1.5px solid white`,
+                            marginLeft: -6,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            color: MONK.greenDark, fontWeight: 800, fontSize: 7.5, fontFamily: FONT,
+                          }}>+{c.roster.length - 4}</div>
+                        )}
+                      </div>
+                      <span style={{ fontSize: 10.5, fontFamily: FONT,
+                        color: isHealthy && newMemberShown ? MONK.greenDark : MONK.inkSoft,
+                        fontWeight: isHealthy && newMemberShown ? 800 : 500,
+                        transition: 'all 300ms cubic-bezier(.34,1.56,.64,1)',
+                      }}>
+                        {memberCount} members
+                        {isHealthy && newMemberPulse && (
+                          <span style={{ marginLeft: 3, fontSize: 11 }}>✨</span>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{ color: MONK.inkSoft, fontSize: 16, flexShrink: 0 }}>›</div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Discover/Create row */}
+          <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8,
+            opacity: animate({from:0,to:1,start:0.5,end:0.9})(progress) }}>
+            <div style={{
+              padding: 12, background: MONK.greenSofter, border: `1.5px solid ${MONK.green}`,
+              borderRadius: 14, textAlign: 'center', color: MONK.greenDark,
+              fontWeight: 800, fontFamily: FONT, fontSize: 12,
+            }}>🌍 Discover</div>
+            <div style={{
+              padding: 12, background: 'transparent',
+              border: `1.5px dashed ${MONK.greenMid}`, borderRadius: 14,
+              textAlign: 'center', color: MONK.inkSoft,
+              fontWeight: 800, fontFamily: FONT, fontSize: 12,
+            }}>+ Create</div>
+          </div>
+
+          {/* New crew member toast */}
+          {newMemberPulse && (
+            <div style={{
+              position: 'absolute', top: 80, left: '50%',
+              transform: 'translateX(-50%)',
+              background: MONK.greenDark, color: 'white',
+              padding: '8px 14px', borderRadius: 999,
+              fontWeight: 800, fontSize: 12, fontFamily: FONT,
+              boxShadow: '0 6px 16px rgba(0,0,0,0.2)',
+              display: 'flex', alignItems: 'center', gap: 6,
+              animation: 'monkSlideDown 400ms cubic-bezier(.34,1.56,.64,1)',
+              zIndex: 60,
+            }}>✨ New crew member joined!</div>
+          )}
+        </div>
+        <TabBar active="crew" />
+      </div>
+    </PhoneScene>
+  );
+}
+
+Object.assign(window, { SceneTimer, SceneBlock, SceneCrew });
+</script>
+<script type="text/babel">
+// monk-scenes-3.jsx — SCENE 6 · Dark Mode reveal
+// Light home screen → tap moon button → expanding circular wipe to dark mode
+
+const { MONK, FONT, MountainBG, PhoneShell, Pill, CircleBtn, GreenButton,
+  TabBar, MonkCharacter, Card, PhoneScene,
+  animate, clamp, Easing } = window;
+
+// Hardcoded light/dark palettes (bypass the MONK proxy so we can render both
+// side-by-side regardless of the global dark flag)
+const LIGHT = {
+  green: '#3DA837', greenDark: '#2C7E28', greenSoft: '#E8F5E5', greenSofter: '#F4FAF2',
+  greenMid: '#7BC474', sky: '#CFE7F4', skyTop: '#DFF0F8',
+  ink: '#1B3A19', inkSoft: '#3F5C3D', card: '#FFFFFF', border: '#D6EBD2',
+  bg: '#DFF0F8', headerBg: 'rgba(255,255,255,0.7)', headerBorder: '#D6EBD2',
+  pillBg: '#FFFFFF',
+  tabBg: 'rgba(255,255,255,0.95)',
+  tabShadow: '0 6px 20px rgba(0,0,0,0.08), 0 0 0 1.5px rgba(61,168,55,0.25)',
+  tabGlow: 'none',
+  mountainFar: '#B8DBA8', mountainMid: '#7BC474', mountainNear: '#3DA837',
+  mountainFarOp: 0.55, mountainMidOp: 0.85,
+};
+const DARK = {
+  green: '#4BC93F', greenDark: '#2C7E28', greenSoft: '#1F2A1E', greenSofter: '#16201A',
+  greenMid: '#2E4A2B', sky: '#0B0B0B', skyTop: '#0A0A0A',
+  ink: '#F2F5F1', inkSoft: '#A8B3A6', card: '#1A1F1A', border: '#2A332A',
+  bg: '#0A0A0A', headerBg: 'rgba(10,10,10,0.75)', headerBorder: '#1F1F1F',
+  pillBg: '#0F1A0E',
+  tabBg: 'rgba(20,24,20,0.95)',
+  tabShadow: '0 6px 20px rgba(0,0,0,0.6), 0 0 0 1.5px rgba(75,201,63,0.35)',
+  tabGlow: `0 0 16px rgba(75,201,63,0.55)`,
+  mountainFar: '#1a2218', mountainMid: '#213021', mountainNear: '#2a3d28',
+  mountainFarOp: 1, mountainMidOp: 1,
+};
+
+// Themed mountain BG for the standalone render (doesn't read the proxy)
+function ThemedMountainBG({ P, width = 390, height = 780 }) {
+  return (
+    <div style={{
+      position: 'absolute', inset: 0,
+      background: `linear-gradient(180deg, ${P.skyTop} 0%, ${P.sky} 70%)`,
+      overflow: 'hidden',
+    }}>
+      <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none"
+        style={{ position: 'absolute', inset: 0 }}>
+        <path d={`M0 ${height*0.65} L${width*0.18} ${height*0.4} L${width*0.32} ${height*0.55} L${width*0.5} ${height*0.35} L${width*0.68} ${height*0.52} L${width*0.84} ${height*0.42} L${width} ${height*0.58} L${width} ${height} L0 ${height} Z`}
+          fill={P.mountainFar} opacity={P.mountainFarOp} />
+        <path d={`M0 ${height*0.78} L${width*0.12} ${height*0.55} L${width*0.28} ${height*0.7} L${width*0.42} ${height*0.5} L${width*0.58} ${height*0.65} L${width*0.74} ${height*0.48} L${width*0.88} ${height*0.62} L${width} ${height*0.55} L${width} ${height} L0 ${height} Z`}
+          fill={P.mountainMid} opacity={P.mountainMidOp} />
+        <path d={`M0 ${height*0.88} L${width*0.08} ${height*0.7} L${width*0.22} ${height*0.82} L${width*0.36} ${height*0.65} L${width*0.5} ${height*0.78} L${width*0.64} ${height*0.62} L${width*0.78} ${height*0.75} L${width*0.92} ${height*0.68} L${width} ${height*0.78} L${width} ${height} L0 ${height} Z`}
+          fill={P.mountainNear} />
+      </svg>
+    </div>
+  );
+}
+
+// Themed home screen — light OR dark based on passed palette
+function ThemedHomeScreen({ P, isDark, breath, highlightMoon = false, moonPress = false }) {
+  const heroIcon = isDark ? '☀️' : '🌙';
+  return (
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
+      {/* Header */}
+      <div style={{
+        position: 'relative', zIndex: 50, paddingTop: 56,
+        padding: '56px 16px 12px', display: 'flex', alignItems: 'center',
+        justifyContent: 'space-between',
+        background: P.headerBg, backdropFilter: 'blur(8px)',
+        borderBottom: `1px solid ${P.headerBorder}`,
+      }}>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '6px 12px', borderRadius: 999, background: P.pillBg,
+          border: `1.5px solid ${P.green}`,
+        }}>
+          <span style={{ fontSize: 16 }}>🔥</span>
+          <span style={{ fontWeight: 800, color: P.greenDark, fontSize: 12, letterSpacing: 0.5 }}>3 STREAK</span>
+        </div>
+        <div style={{ fontFamily: FONT, fontWeight: 900, fontSize: 18, color: P.ink, letterSpacing: -0.5 }}>
+          monk.mode
+        </div>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <div style={{ width: 34, height: 34, borderRadius: 999, background: P.greenSoft,
+            border: `2px solid ${P.green}`, overflow: 'hidden',
+            display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <img src="reel/assets/user-avatar.jpg" alt="" style={{ width: 34, height: 34, objectFit: 'cover',
+              objectPosition: 'center 25%' }} />
+          </div>
+          <div style={{
+            width: 34, height: 34, borderRadius: 999,
+            background: isDark ? '#1F1F1F' : 'white',
+            border: `1.5px solid ${isDark ? '#2A2A2A' : P.green}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}><span style={{ fontSize: 14 }}>⚙️</span></div>
+          {/* Moon / Sun button — the star of the scene */}
+          <div
+            data-moon-btn
+            style={{
+              width: 34, height: 34, borderRadius: 999,
+              background: isDark ? '#1F2A1E' : P.greenSoft,
+              border: `1.5px solid ${P.green}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transform: moonPress ? 'scale(0.85)' : (highlightMoon ? 'scale(1.15)' : 'scale(1)'),
+              transition: 'transform 180ms cubic-bezier(.34,1.56,.64,1)',
+              boxShadow: isDark
+                ? `0 0 18px ${P.green}99`
+                : (highlightMoon ? `0 0 0 6px ${P.green}44, 0 0 22px ${P.green}88` : 'none'),
+            }}>
+            <span style={{ fontSize: 14 }}>{heroIcon}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div style={{ padding: '20px 16px', flex: 1, position: 'relative' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+          <MonkCharacter state="cool" size={130} breath={breath} />
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '8px 16px', borderRadius: 999,
+            background: P.greenSoft, border: `1.5px solid ${P.green}`,
+          }}>
+            <div style={{ width: 8, height: 8, borderRadius: 999, background: P.green }}/>
+            <span style={{ color: P.greenDark, fontWeight: 800, fontSize: 13, fontFamily: FONT, whiteSpace: 'nowrap' }}>
+              66% · Almost there
+            </span>
+          </div>
+        </div>
+
+        {/* Stat grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+          <div style={{ background: P.card, borderRadius: 18, padding: 12,
+            border: `1.5px solid ${P.border}` }}>
+            <div style={{ fontSize: 10, color: P.inkSoft, fontWeight: 700, letterSpacing: 1, marginBottom: 6, fontFamily: FONT }}>HABITS DONE</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 8 }}>
+              <span style={{ fontSize: 28, fontWeight: 900, color: P.greenDark, fontFamily: FONT }}>2</span>
+              <span style={{ fontSize: 14, color: P.inkSoft, fontFamily: FONT }}>/ 3</span>
+            </div>
+            <div style={{ height: 4, background: P.greenSofter, borderRadius: 2, overflow: 'hidden' }}>
+              <div style={{ height: '100%', background: P.green, width: '66%' }}/>
+            </div>
+          </div>
+          <div style={{ background: P.card, borderRadius: 18, padding: 12,
+            border: `1.5px solid ${P.border}` }}>
+            <div style={{ fontSize: 10, color: P.inkSoft, fontWeight: 700, letterSpacing: 1, marginBottom: 6, fontFamily: FONT }}>DAY STREAK</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 22 }}>💪</span>
+              <span style={{ fontSize: 28, fontWeight: 900, color: P.greenDark, fontFamily: FONT }}>3</span>
+              <span style={{ fontSize: 14, color: P.inkSoft, fontFamily: FONT }}>days</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Action tiles */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
+          {[
+            { e: '🌱', l: 'Log Habit' },
+            { e: '🧘', l: 'Focus Timer' },
+            { e: '🐵', l: 'Monk My Apps' },
+          ].map((t, i) => (
+            <div key={i} style={{ background: P.card, borderRadius: 18, padding: 12,
+              border: `1.5px solid ${P.border}`, textAlign: 'center' }}>
+              <div style={{ fontSize: 22, marginBottom: 4 }}>{t.e}</div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: P.ink, fontFamily: FONT }}>{t.l}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Start session row */}
+        <div style={{ background: P.card, borderRadius: 18, padding: 14,
+          border: `1.5px solid ${P.border}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontWeight: 800, color: P.ink, fontFamily: FONT, fontSize: 14 }}>Start a Monk Session</div>
+            <div style={{ fontSize: 11, color: P.inkSoft, marginTop: 2, fontFamily: FONT }}>Block distracting apps & focus</div>
+          </div>
+          <div style={{ padding: '6px 14px', background: P.greenSofter, borderRadius: 999,
+            color: P.greenDark, fontWeight: 800, fontSize: 12, fontFamily: FONT }}>Go →</div>
+        </div>
+      </div>
+
+      {/* Themed tab bar */}
+      <div style={{
+        position: 'absolute', left: 8, right: 8, bottom: 14, zIndex: 60,
+        background: P.tabBg, borderRadius: 28,
+        padding: '8px 4px', display: 'flex', justifyContent: 'space-between',
+        boxShadow: P.tabShadow, backdropFilter: 'blur(10px)',
+      }}>
+        {[
+          { id: 'home', label: 'Home', img: 'reel/assets/monk-relieved.png' },
+          { id: 'habits', label: 'Habits', img: 'reel/assets/monk-proud.png' },
+          { id: 'block', label: 'Block', img: 'reel/assets/monk-angry.png' },
+          { id: 'monk', label: 'Monk', img: 'reel/assets/monk-meditating.png' },
+          { id: 'crew', label: 'Crew', img: 'reel/assets/monk-happy.png' },
+        ].map(t => {
+          const active = t.id === 'home';
+          return (
+            <div key={t.id} style={{
+              flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+              padding: '4px 4px', borderRadius: 18, minWidth: 0,
+              background: active ? P.green : 'transparent',
+              boxShadow: active ? P.tabGlow : 'none',
+              transform: active ? 'scale(1.03)' : 'scale(1)',
+            }}>
+              <div style={{ marginBottom: 2, height: 28, width: 28, display: 'flex',
+                alignItems: 'center', justifyContent: 'center' }}>
+                <img src={t.img} alt="" draggable={false} style={{
+                  width: 30, height: 30, objectFit: 'contain',
+                  filter: active ? 'drop-shadow(0 1px 2px rgba(0,0,0,0.2))' : 'saturate(0.7) opacity(0.85)',
+                  transform: active ? 'scale(1.08)' : 'scale(1)',
+                }} />
+              </div>
+              <div style={{
+                fontFamily: FONT, fontWeight: 800, fontSize: 11,
+                color: active ? 'white' : P.inkSoft,
+              }}>{t.label}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// SCENE 6 — DARK MODE reveal
+// 0.0–1.2s: light home screen, monk breathes
+// 1.2–1.8s: moon button pulses (spotlight attention)
+// 1.8–2.1s: finger taps the moon (squash)
+// 2.1–3.2s: dark mode expands as a circular wipe from the moon button
+// 3.2–4.0s: hold on dark UI, sparkles pop near the sun icon
+// ─────────────────────────────────────────────
+function SceneDarkMode({ localTime, progress }) {
+  const breath = Math.sin(localTime * 1.2) * 0.5 + 0.5;
+
+  // Phase timing
+  const HIGHLIGHT_START = 1.0;
+  const TAP_TIME = 1.8;
+  const WIPE_START = 1.95;
+  const WIPE_END = 3.1;
+  const SPARKLE_START = 3.1;
+
+  const highlightMoon = localTime > HIGHLIGHT_START && localTime < TAP_TIME;
+  const moonPress = localTime > TAP_TIME - 0.08 && localTime < TAP_TIME + 0.18;
+  const fingerVisible = localTime > HIGHLIGHT_START - 0.2 && localTime < TAP_TIME + 0.4;
+
+  // Finger position: moon button is at the far right of the header. Phone is 390 wide,
+  // moon button center is roughly at x=352, y=76 (56px paddingTop + ~20px into header).
+  const MOON_X = 352;
+  const MOON_Y = 84;
+
+  // Finger travels from below-right to the moon, then taps
+  const fingerT = clamp((localTime - (HIGHLIGHT_START - 0.2)) / 1.1, 0, 1);
+  const fingerEase = Easing.easeOutCubic(fingerT);
+  const fingerX = interp(400, MOON_X + 10, fingerEase);
+  const fingerY = interp(360, MOON_Y + 18, fingerEase);
+  // Press squash during tap
+  const pressP = localTime > TAP_TIME && localTime < TAP_TIME + 0.2
+    ? (localTime - TAP_TIME) / 0.2 : 0;
+  const fingerScale = moonPress ? 0.85 : 1;
+
+  // Wipe radius (clip-path for the dark layer)
+  const wipeP = clamp((localTime - WIPE_START) / (WIPE_END - WIPE_START), 0, 1);
+  const wipeEased = Easing.easeOutCubic(wipeP);
+  // Max radius needs to cover phone diagonal from the moon button corner.
+  // Phone is 390x780; from (352, 84) the far corner is (0, 780). dist = sqrt(352² + 696²) ≈ 780
+  const MAX_R = 830;
+  const wipeR = wipeEased * MAX_R;
+
+  // Soft ring around expanding edge
+  const ringOpacity = wipeP > 0 && wipeP < 1 ? 0.6 * (1 - wipeP) : 0;
+
+  // Sparkle particles near sun after flip
+  const sparkleT = localTime - SPARKLE_START;
+  const sparkles = sparkleT > 0 && sparkleT < 1.2 ? Array.from({ length: 8 }).map((_, i) => {
+    const angle = (i / 8) * Math.PI * 2;
+    const r = 16 + sparkleT * 40 + (i % 2) * 10;
+    const op = Math.max(0, 1 - sparkleT);
+    return { x: Math.cos(angle) * r, y: Math.sin(angle) * r, op, size: 4 + (i%3) };
+  }) : [];
+
+  return (
+    <PhoneScene>
+      {/* Light layer — always rendered, fills the phone */}
+      <div style={{ position: 'absolute', inset: 0 }}>
+        <ThemedMountainBG P={LIGHT} width={390} height={780} />
+      </div>
+      <ThemedHomeScreen
+        P={LIGHT} isDark={false} breath={breath}
+        highlightMoon={highlightMoon} moonPress={moonPress}
+      />
+
+      {/* Dark layer — clipped by expanding circle from moon button */}
+      {wipeP > 0 && (
+        <div style={{
+          position: 'absolute', inset: 0,
+          clipPath: `circle(${wipeR}px at ${MOON_X}px ${MOON_Y}px)`,
+          WebkitClipPath: `circle(${wipeR}px at ${MOON_X}px ${MOON_Y}px)`,
+        }}>
+          <div style={{ position: 'absolute', inset: 0 }}>
+            <ThemedMountainBG P={DARK} width={390} height={780} />
+          </div>
+          <ThemedHomeScreen
+            P={DARK} isDark={true} breath={breath}
+            highlightMoon={false} moonPress={false}
+          />
+        </div>
+      )}
+
+      {/* Expanding ring at wipe edge — SVG so it can be clipped-out circle */}
+      {wipeP > 0 && wipeP < 1 && (
+        <svg style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 80 }}
+          width="390" height="780" viewBox="0 0 390 780">
+          <circle cx={MOON_X} cy={MOON_Y} r={wipeR}
+            fill="none" stroke="#4BC93F" strokeWidth="3" opacity={ringOpacity} />
+          <circle cx={MOON_X} cy={MOON_Y} r={wipeR - 8}
+            fill="none" stroke="white" strokeWidth="1.5" opacity={ringOpacity * 0.7} />
+        </svg>
+      )}
+
+      {/* Sparkles around sun icon after flip */}
+      {sparkles.length > 0 && (
+        <div style={{ position: 'absolute', left: MOON_X, top: MOON_Y, zIndex: 90,
+          pointerEvents: 'none' }}>
+          {sparkles.map((s, i) => (
+            <div key={i} style={{
+              position: 'absolute', left: s.x, top: s.y,
+              width: s.size, height: s.size, borderRadius: 999,
+              background: '#FFE066',
+              boxShadow: '0 0 8px #FFE066',
+              opacity: s.op,
+            }}/>
+          ))}
+        </div>
+      )}
+
+      {/* Pointing finger */}
+      {fingerVisible && (
+        <div style={{
+          position: 'absolute', left: fingerX, top: fingerY, zIndex: 95,
+          transform: `scale(${fingerScale}) rotate(-18deg)`,
+          transformOrigin: '20% 20%',
+          transition: 'transform 120ms ease-out',
+          pointerEvents: 'none',
+          filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))',
+        }}>
+          <div style={{ fontSize: 44 }}>👆</div>
+        </div>
+      )}
+    </PhoneScene>
+  );
+}
+
+// linear interp
+function interp(a, b, t) { return a + (b - a) * t; }
+
+Object.assign(window, { SceneDarkMode });
+</script>
+<script type="text/babel">
+// monk-reel.jsx — main timeline composer
+// Sequences scenes with title cards, particles, and Tweaks.
+
+const { Stage, Sprite, useTime, useTimeline, useSprite, Easing, animate, interpolate, clamp,
+  MONK, FONT, MountainBG, PhoneShell,
+  SceneHome, SceneHabits, SceneTimer, SceneBlock, SceneCrew, SceneDarkMode,
+  FallingLeaves, Sparkles, Confetti, EmojiBurst } = window;
+
+// Scene timing (each scene gets ~5-6s)
+// Title cards: 1s overlay between scenes
+const TIMELINE = {
+  intro:    { start: 0,    end: 2.5  },
+  home:     { start: 2.5,  end: 8.5  },
+  habits:   { start: 8.5,  end: 17.0 },  // extended: schedule modal (3s) + habits ticking (5.5s)
+  timer:    { start: 17.0, end: 23.5 },
+  block:    { start: 23.5, end: 30.5 },  // hero — longest
+  crew:     { start: 30.5, end: 35.5 },
+  dark:     { start: 35.5, end: 39.5 },  // dark mode reveal
+  outro:    { start: 39.5, end: 42.0 },
+};
+const TOTAL_DURATION = 42;
+
+// Feature caption — prominent pill that pops in near the phone, stays for most of a scene.
+// Positioned on the RIGHT side of the stage (phone is centered).
+function FeatureCaption({ start, end, number, title, text, side = 'right' }) {
+  return (
+    <Sprite start={start} end={end}>
+      {({ progress }) => {
+        // pop in, hold, fade out
+        const fIn = clamp(progress / 0.12, 0, 1);
+        const fOut = clamp((1 - progress) / 0.15, 0, 1);
+        const op = Math.min(fIn, fOut);
+        const scale = animate({from:0.7,to:1,start:0,end:0.18,ease:Easing.easeOutBack})(progress);
+        const rotateIn = (1 - fIn) * (side === 'right' ? 4 : -4);
+
+        const posStyle = side === 'right'
+          ? { right: 70, top: 200 }
+          : { left: 70, top: 200 };
+
+        return (
+          <div style={{
+            position: 'absolute', ...posStyle, zIndex: 180,
+            opacity: op, transform: `scale(${scale}) rotate(${rotateIn}deg)`,
+            pointerEvents: 'none', maxWidth: 320,
+          }}>
+            <div style={{
+              background: 'white',
+              border: `3px solid ${MONK.greenDark}`,
+              borderRadius: 22,
+              padding: '16px 20px 18px',
+              boxShadow: `0 8px 0 ${MONK.greenDark}, 0 20px 40px rgba(27,58,25,0.25)`,
+              fontFamily: FONT,
+              position: 'relative',
+            }}>
+              {/* numbered badge */}
+              <div style={{
+                position: 'absolute',
+                top: -14, left: side === 'right' ? 'auto' : -14,
+                right: side === 'right' ? -14 : 'auto',
+                width: 36, height: 36, borderRadius: 999,
+                background: MONK.green,
+                border: `3px solid ${MONK.greenDark}`,
+                color: 'white', fontWeight: 900, fontSize: 16,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: `0 4px 0 ${MONK.greenDeep}`,
+              }}>{number}</div>
+
+              <div style={{
+                fontSize: 11, fontWeight: 800, color: MONK.green,
+                letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4,
+              }}>Key feature</div>
+              <div style={{
+                fontSize: 22, fontWeight: 900, color: MONK.ink,
+                letterSpacing: -0.5, lineHeight: 1.1, marginBottom: 6,
+              }}>{title}</div>
+              <div style={{
+                fontSize: 13, fontWeight: 500, color: MONK.inkSoft,
+                lineHeight: 1.35,
+              }}>{text}</div>
+
+              {/* pointer tail pointing at phone */}
+              <div style={{
+                position: 'absolute',
+                [side === 'right' ? 'left' : 'right']: -14,
+                top: 40,
+                width: 0, height: 0,
+                borderTop: '10px solid transparent',
+                borderBottom: '10px solid transparent',
+                [side === 'right' ? 'borderRight' : 'borderLeft']: `14px solid ${MONK.greenDark}`,
+              }}/>
+              <div style={{
+                position: 'absolute',
+                [side === 'right' ? 'left' : 'right']: -9,
+                top: 43,
+                width: 0, height: 0,
+                borderTop: '7px solid transparent',
+                borderBottom: '7px solid transparent',
+                [side === 'right' ? 'borderRight' : 'borderLeft']: `10px solid white`,
+              }}/>
+            </div>
+          </div>
+        );
+      }}
+    </Sprite>
+  );
+}
+
+// Title card overlay shown at start of each scene
+function TitleCard({ start, label, sub }) {
+  return (
+    <Sprite start={start} end={start + 1.4}>
+      {({ progress }) => {
+        const opacity = progress < 0.15 ? progress / 0.15
+          : progress > 0.7 ? (1 - progress) / 0.3 : 1;
+        const slide = animate({from:30,to:0,start:0,end:0.3,ease:Easing.easeOutBack})(progress);
+        return (
+          <div style={{
+            position: 'absolute', top: 60, left: 0, right: 0, zIndex: 200,
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            opacity, transform: `translateY(${slide}px)`, pointerEvents: 'none',
+          }}>
+            <div style={{
+              padding: '6px 16px', background: 'rgba(27,58,25,0.85)',
+              borderRadius: 999, color: 'white',
+              fontFamily: FONT, fontWeight: 700, fontSize: 11,
+              letterSpacing: 2, textTransform: 'uppercase',
+              backdropFilter: 'blur(8px)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+            }}>{label}</div>
+            <div style={{
+              marginTop: 8, fontFamily: FONT, fontSize: 38, fontWeight: 900,
+              color: 'white', letterSpacing: -1, textAlign: 'center',
+              textShadow: '0 4px 24px rgba(0,0,0,0.3)',
+            }}>{sub}</div>
+          </div>
+        );
+      }}
+    </Sprite>
+  );
+}
+
+// Intro card
+function Intro() {
+  const { progress, localTime } = useSprite();
+  const opacity = progress > 0.85 ? Math.max(0, (1 - progress) / 0.15) : 1;
+  const logoScale = animate({from:0.6,to:1,start:0.05,end:0.4,ease:Easing.easeOutBack})(progress);
+  const logoY = animate({from:30,to:0,start:0.05,end:0.4,ease:Easing.easeOutBack})(progress);
+  const taglineO = animate({from:0,to:1,start:0.35,end:0.6})(progress);
+  return (
+    <div style={{
+      position: 'absolute', inset: 0,
+      background: `linear-gradient(180deg, ${MONK.skyTop}, ${MONK.sky} 60%, ${MONK.green})`,
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      opacity,
+    }}>
+      <MountainBG width={1280} height={720} />
+      {/* Title */}
+      <div style={{ position: 'relative', zIndex: 10, textAlign: 'center',
+        transform: `translateY(${logoY}px) scale(${logoScale})` }}>
+        <div style={{ fontSize: 26, fontFamily: FONT, fontWeight: 700, color: MONK.greenDark,
+          letterSpacing: 4, textTransform: 'uppercase', marginBottom: 4 }}>introducing</div>
+        <div style={{
+          fontSize: 120, fontFamily: FONT, fontWeight: 900, color: MONK.ink,
+          letterSpacing: -4, lineHeight: 1,
+        }}>monk<span style={{ color: MONK.green }}>.mode</span></div>
+      </div>
+      <div style={{
+        marginTop: 16, position: 'relative', zIndex: 10,
+        opacity: taglineO,
+        fontSize: 24, fontFamily: FONT, fontWeight: 600, color: MONK.inkSoft,
+        letterSpacing: -0.3,
+      }}>cage your apps. earn your screen time.</div>
+      {/* Floating leaves */}
+      <FallingLeaves width={1280} height={720} time={localTime} count={20} intensity={1} />
+    </div>
+  );
+}
+
+// Outro card
+function Outro() {
+  const { progress, localTime } = useSprite();
+  const burstAt = 0.05;
+  const burstP = clamp((progress - burstAt) / 0.7, 0, 1);
+  const titleS = animate({from:0.4,to:1,start:0.1,end:0.5,ease:Easing.easeOutBack})(progress);
+  return (
+    <div style={{
+      position: 'absolute', inset: 0,
+      background: `linear-gradient(180deg, ${MONK.green}, ${MONK.greenDark})`,
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      overflow: 'hidden',
+    }}>
+      <MountainBG width={1280} height={720} />
+      <Confetti width={1280} height={720} time={localTime} burst={burstP} count={50}/>
+      <div style={{ position: 'relative', zIndex: 10, textAlign: 'center',
+        transform: `scale(${titleS})` }}>
+        <div style={{ fontSize: 100, fontFamily: FONT, fontWeight: 900, color: 'white',
+          letterSpacing: -3 }}>monk.mode</div>
+        <div style={{
+          marginTop: 8, fontSize: 22, fontFamily: FONT, fontWeight: 700, color: MONK.cream,
+        }}>get it on the App Store</div>
+      </div>
+    </div>
+  );
+}
+
+// Cross-fade wrapper for scenes
+function FadeScene({ start, end, children, fadeIn = 0.4, fadeOut = 0.4 }) {
+  return (
+    <Sprite start={start} end={end}>
+      {(ctx) => {
+        const { localTime, duration } = ctx;
+        const fIn = clamp(localTime / fadeIn, 0, 1);
+        const fOut = clamp((duration - localTime) / fadeOut, 0, 1);
+        const op = Math.min(fIn, fOut);
+        const slide = (1 - fIn) * 24 - (1 - fOut) * 24;
+        return (
+          <div style={{
+            position: 'absolute', inset: 0, opacity: op,
+            transform: `translateY(${slide}px) scale(${0.96 + 0.04 * op})`,
+          }}>
+            {typeof children === 'function' ? children(ctx) : children}
+          </div>
+        );
+      }}
+    </Sprite>
+  );
+}
+
+// Branding strip — small badge on the LEFT side, doesn't overlap the phone
+function BrandStrip() {
+  const time = useTime();
+  if (time < TIMELINE.intro.end || time > TIMELINE.outro.start) return null;
+  return (
+    <div style={{
+      position: 'absolute', bottom: 32, left: 32, zIndex: 150, pointerEvents: 'none',
+    }}>
+      <div style={{
+        background: 'rgba(27,58,25,0.75)', backdropFilter: 'blur(10px)',
+        color: 'white', padding: '10px 18px', borderRadius: 14,
+        fontFamily: FONT, letterSpacing: -0.2,
+        boxShadow: '0 6px 20px rgba(0,0,0,0.25)',
+        display: 'flex', flexDirection: 'column', gap: 2,
+      }}>
+        <div style={{ fontWeight: 900, fontSize: 18 }}>monk.mode</div>
+        <div style={{ fontWeight: 600, fontSize: 11, opacity: 0.7, letterSpacing: 0.5,
+          textTransform: 'uppercase' }}>focus that earns</div>
+      </div>
+    </div>
+  );
+}
+
+// Ambient particles overlay
+function AmbientParticles({ enabled = true }) {
+  const time = useTime();
+  if (!enabled) return null;
+  return (
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 100 }}>
+      <FallingLeaves width={1280} height={720} time={time} count={10} intensity={0.6} />
+    </div>
+  );
+}
+
+// The main reel
+function MonkReel({ particles = true }) {
+  return (
+    <>
+      {/* Background fill */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: 'linear-gradient(160deg, #FFF8E0 0%, #DFF0F8 40%, #C5E5D9 80%, #7BC474 100%)',
+      }} />
+
+      {/* Intro */}
+      <FadeScene start={TIMELINE.intro.start} end={TIMELINE.intro.end} fadeIn={0.2} fadeOut={0.5}>
+        <Intro />
+      </FadeScene>
+
+      {/* HOME */}
+      <FadeScene start={TIMELINE.home.start} end={TIMELINE.home.end}>
+        {(ctx) => <SceneHome localTime={ctx.localTime} progress={ctx.progress} />}
+      </FadeScene>
+      <TitleCard start={TIMELINE.home.start + 0.2} label="01 · Dashboard" sub="Your daily check-in" />
+
+      {/* HABITS */}
+      <FadeScene start={TIMELINE.habits.start} end={TIMELINE.habits.end}>
+        {(ctx) => <SceneHabits localTime={ctx.localTime} progress={ctx.progress} />}
+      </FadeScene>
+      <TitleCard start={TIMELINE.habits.start + 0.2} label="02 · Habits" sub="Earn your screen time" />
+      {/* Feature 1: Schedule habits the night before — shown while modal is up */}
+      <FeatureCaption
+        start={TIMELINE.habits.start + 1.0}
+        end={TIMELINE.habits.start + 3.4}
+        number="1"
+        title="Schedule habits the night before"
+        text="Set tomorrow's wins tonight — wake up with a plan."
+        side="right"
+      />
+      {/* Feature 1b: after modal closes, show habits ticking off */}
+      <FeatureCaption
+        start={TIMELINE.habits.start + 4.0}
+        end={TIMELINE.habits.end - 0.3}
+        number="1"
+        title="Check them off as you go"
+        text="Every completed habit pushes your gold bar up."
+        side="right"
+      />
+
+      {/* TIMER */}
+      <FadeScene start={TIMELINE.timer.start} end={TIMELINE.timer.end}>
+        {(ctx) => <SceneTimer localTime={ctx.localTime} progress={ctx.progress} />}
+      </FadeScene>
+      <TitleCard start={TIMELINE.timer.start + 0.2} label="03 · Focus" sub="Deep work, vibes on" />
+
+      {/* BLOCK — hero */}
+      <FadeScene start={TIMELINE.block.start} end={TIMELINE.block.end}>
+        {(ctx) => <SceneBlock localTime={ctx.localTime} progress={ctx.progress} />}
+      </FadeScene>
+      <TitleCard start={TIMELINE.block.start + 0.2} label="04 · Block" sub="Cage the distractions" />
+      {/* Feature 2: Phone is locked */}
+      <FeatureCaption
+        start={TIMELINE.block.start + 2.0}
+        end={TIMELINE.block.start + 4.8}
+        number="2"
+        title="Your phone is locked"
+        text="Distracting apps get caged — no willpower required."
+        side="right"
+      />
+      {/* Feature 3: Unlock by completing habits */}
+      <FeatureCaption
+        start={TIMELINE.block.start + 4.9}
+        end={TIMELINE.block.end - 0.3}
+        number="3"
+        title="Unlock by completing habits"
+        text="Gym. Read. Run. Every habit buys back your screen time."
+        side="left"
+      />
+
+      {/* CREW */}
+      <FadeScene start={TIMELINE.crew.start} end={TIMELINE.crew.end}>
+        {(ctx) => <SceneCrew localTime={ctx.localTime} progress={ctx.progress} />}
+      </FadeScene>
+      <TitleCard start={TIMELINE.crew.start + 0.2} label="05 · Crew" sub="Stronger together" />
+      {/* Feature 4: Share with your crew */}
+      <FeatureCaption
+        start={TIMELINE.crew.start + 1.8}
+        end={TIMELINE.crew.end - 0.3}
+        number="4"
+        title="Share with your crew"
+        text="Build streaks together — accountability that actually sticks."
+        side="right"
+      />
+
+      {/* DARK MODE reveal */}
+      <FadeScene start={TIMELINE.dark.start} end={TIMELINE.dark.end}>
+        {(ctx) => <SceneDarkMode localTime={ctx.localTime} progress={ctx.progress} />}
+      </FadeScene>
+      <TitleCard start={TIMELINE.dark.start + 0.2} label="06 · Dark mode" sub="A flick for the night owl" />
+      <FeatureCaption
+        start={TIMELINE.dark.start + 0.6}
+        end={TIMELINE.dark.start + 2.0}
+        number="5"
+        title="Flick to dark mode"
+        text="One tap and the whole app dims."
+        side="right"
+      />
+      <FeatureCaption
+        start={TIMELINE.dark.start + 2.2}
+        end={TIMELINE.dark.end - 0.3}
+        number="5"
+        title="Easier on the eyes at night"
+        text="Same clarity, zero glare."
+        side="right"
+      />
+
+      {/* OUTRO */}
+      <FadeScene start={TIMELINE.outro.start} end={TIMELINE.outro.end} fadeIn={0.3} fadeOut={0.2}>
+        <Outro />
+      </FadeScene>
+
+      {particles && <AmbientParticles enabled={particles} />}
+      <BrandStrip />
+
+      {/* Scene clock pip in corner */}
+      <SceneClock />
+    </>
+  );
+}
+
+function SceneClock() {
+  const time = useTime();
+  let label = '';
+  for (const [key, val] of Object.entries(TIMELINE)) {
+    if (time >= val.start && time < val.end) { label = key; break; }
+  }
+  return (
+    <div style={{
+      position: 'absolute', top: 24, right: 24, zIndex: 200,
+      background: 'rgba(0,0,0,0.55)', color: 'white',
+      padding: '6px 12px', borderRadius: 999,
+      fontFamily: 'JetBrains Mono, ui-monospace, monospace',
+      fontSize: 11, letterSpacing: 1, textTransform: 'uppercase',
+      backdropFilter: 'blur(8px)',
+    }}>{label}</div>
+  );
+}
+
+Object.assign(window, { MonkReel, TIMELINE, TOTAL_DURATION });
+</script>
+<script type="text/babel">
+  window.__MONK_DARK = false;
+  function ReelApp() {
+    const duration = window.TOTAL_DURATION || 42;
+    return (
+      <Stage width={1280} height={720} duration={duration} background="#0a0a0a" persistKey="monkreel">
+        <MonkReel particles={true} />
+      </Stage>
+    );
+  }
+  function tryMountReel(attempt = 0) {
+    if (window.MonkReel && window.Stage && window.SceneHome && window.SceneBlock && window.SceneDarkMode) {
+      ReactDOM.createRoot(document.getElementById('monk-reel-root')).render(<ReelApp />);
+    } else if (attempt < 50) {
+      setTimeout(() => tryMountReel(attempt + 1), 100);
+    }
+  }
+  tryMountReel();
 </script>
 </body>
 </html>
