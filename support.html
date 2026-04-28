@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Support — Monk Mode</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f4faf0;
+      color: #1a2e0f;
+      line-height: 1.6;
+      padding: 0 0 60px;
+    }
+
+    header {
+      background: #fff;
+      border-bottom: 2px solid #d4edbc;
+      padding: 28px 24px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: #5cc830;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    header h1 {
+      font-size: 22px;
+      font-weight: 800;
+      color: #1a2e0f;
+    }
+
+    header p {
+      font-size: 12px;
+      color: #6b8f5a;
+      margin-top: 2px;
+    }
+
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 32px 24px 0;
+    }
+
+    .intro {
+      background: #e6f7d9;
+      border: 2px solid #2a7810;
+      border-radius: 16px;
+      padding: 16px 18px;
+      margin-bottom: 32px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+
+    .intro-icon { font-size: 26px; flex-shrink: 0; }
+
+    .intro-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #2a7810;
+      margin-bottom: 5px;
+    }
+
+    .intro-body {
+      font-size: 14px;
+      color: #1a2e0f;
+      line-height: 1.6;
+    }
+
+    .contact-card {
+      background: #fff;
+      border: 2px solid #5cc830;
+      border-radius: 16px;
+      padding: 20px 22px;
+      margin-bottom: 32px;
+      text-align: center;
+    }
+
+    .contact-label {
+      font-size: 11px;
+      font-weight: 800;
+      color: #2a7810;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+
+    .contact-email {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1a2e0f;
+      margin-bottom: 6px;
+    }
+
+    .contact-email a {
+      color: #1a2e0f;
+      text-decoration: none;
+    }
+
+    .contact-email a:hover {
+      color: #2a7810;
+    }
+
+    .contact-time {
+      font-size: 13px;
+      color: #6b8f5a;
+    }
+
+    .section {
+      margin-bottom: 24px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 800;
+      color: #2a7810;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+
+    .section-body {
+      background: #fff;
+      border: 1.5px solid #d4edbc;
+      border-radius: 14px;
+      padding: 16px 18px;
+      font-size: 14px;
+      color: #1a2e0f;
+      line-height: 1.75;
+    }
+
+    .faq-question {
+      font-weight: 700;
+      color: #1a2e0f;
+      margin-bottom: 6px;
+    }
+
+    .faq-answer {
+      color: #1a2e0f;
+    }
+
+    footer {
+      text-align: center;
+      padding: 32px 24px 0;
+      font-size: 12px;
+      color: #6b8f5a;
+    }
+
+    a { color: #2a7810; }
+
+    @media (prefers-color-scheme: dark) {
+      body { background: #0f1f08; color: #e8f5e0; }
+      header { background: #1a2e0f; border-color: #2a4a1a; }
+      header h1 { color: #e8f5e0; }
+      .intro { background: #1a3a10; border-color: #5cc830; }
+      .intro-body { color: #e8f5e0; }
+      .contact-card { background: #1a2e0f; border-color: #5cc830; }
+      .contact-email { color: #e8f5e0; }
+      .contact-email a { color: #e8f5e0; }
+      .section-body { background: #1a2e0f; border-color: #2a4a1a; color: #e8f5e0; }
+      .faq-question { color: #e8f5e0; }
+      .faq-answer { color: #e8f5e0; }
+      footer { color: #6b8f5a; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">🧘</div>
+    <div>
+      <h1>Monk Mode</h1>
+      <p>Support · Last updated April 2026</p>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <div class="intro">
+      <div class="intro-icon">💬</div>
+      <div>
+        <div class="intro-title">We're here to help</div>
+        <div class="intro-body">Stuck on something? Found a bug? Have a feature idea? We read every message and aim to reply within 48 hours.</div>
+      </div>
+    </div>
+
+    <div class="contact-card">
+      <div class="contact-label">Contact Us</div>
+      <div class="contact-email"><a href="mailto:hello@pathwiseacademy.co">hello@pathwiseacademy.co</a></div>
+      <div class="contact-time">Typical response time: under 48 hours</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Frequently Asked Questions</div>
+      <div class="section-body">
+        <div class="faq-question">How do I block apps?</div>
+        <div class="faq-answer">Open Monk Mode → tap the App Shield card on the home screen → grant Screen Time permission when prompted → choose the apps you want blocked. The shield activates automatically when you start a Monk session or hit your daily screen time limit.</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-body">
+        <div class="faq-question">How do I unlock an app early?</div>
+        <div class="faq-answer">Tap a blocked app to see the Monk Mode shield, then tap "Emergency Override." You get up to 3 overrides per day — each one is logged to your Crew so they can hold you accountable. Repeat use breaks your Clean Days streak.</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-body">
+        <div class="faq-question">How do I cancel my Pro subscription?</div>
+        <div class="faq-answer">Subscriptions are managed through your Apple ID, not inside Monk Mode. On your iPhone: Settings → tap your name at the top → Subscriptions → Monk Mode → Cancel Subscription. Your Pro features remain active until the end of the billing period.</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-body">
+        <div class="faq-question">How do I delete my account?</div>
+        <div class="faq-answer">Open Monk Mode → Settings tab → scroll to the bottom → tap "Delete Account." This permanently removes your profile, posts, habits, and streaks. The action cannot be undone. If you need help with this, email us at <a href="mailto:hello@pathwiseacademy.co">hello@pathwiseacademy.co</a>.</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-body">
+        <div class="faq-question">How do I report a user or post?</div>
+        <div class="faq-answer">Tap the three-dot menu on any post in the Crew feed → choose "Report" → select a reason (spam, harassment, hate speech, offensive content). Reported content is reviewed within 24 hours. You can also block any user from the same menu — blocked users will no longer see your activity.</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-body">
+        <div class="faq-question">I forgot my password or can't sign in</div>
+        <div class="faq-answer">On the sign-in screen, tap "Forgot password?" and we'll email you a reset link. If you signed up with Apple, use the "Sign in with Apple" button — there's no separate password to remember. Still stuck? Email <a href="mailto:hello@pathwiseacademy.co">hello@pathwiseacademy.co</a> with the email address on your account.</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-body">
+        <div class="faq-question">My habit didn't log / streak broke</div>
+        <div class="faq-answer">Habits log to your local device first, then sync to the cloud when you have a connection. If a habit didn't appear in your Crew feed, check that you're online and pull-to-refresh the feed. If your streak shows incorrectly after a sync, email us with your username and the date in question and we'll fix it manually.</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-body">
+        <div class="faq-question">The App Shield isn't blocking apps</div>
+        <div class="faq-answer">Make sure you've granted Screen Time / Family Controls permission: iOS Settings → Screen Time → Lock Screen Time Settings should be off, then re-open Monk Mode and re-grant permission when asked. The shield only works on iOS 16 and later.</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-body">
+        <div class="faq-question">Bug reports & feature requests</div>
+        <div class="faq-answer">Send anything you've noticed to <a href="mailto:hello@pathwiseacademy.co">hello@pathwiseacademy.co</a>. Screenshots, your iOS version, and a short description of what happened are super helpful. We're a small team and read every message.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    © 2026 Pathwise Private Ltd · Monk Mode
+  </footer>
+
+</body>
+</html>
